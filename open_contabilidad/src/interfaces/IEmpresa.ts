@@ -1,0 +1,32 @@
+export interface IEmpresa{
+    codigo: number;
+    rut:number;
+    dv:string;
+    nombre:string;
+    direccion:string;
+    ciudad:string;
+    comuna:string;
+    giro:string;
+    replegal:string;
+    rutreplegal:number;
+    dvrutreplegal:string;
+    controlila:number;
+    email:string;
+    password:string;
+    smtp:string;
+    imap:string;
+    emailcorp:string;
+    puerto:number;
+    telefono:number;
+    rutusuariosii:number;
+    dvusuariosii:string;
+    codacteco:number;
+    codsucsii:number;
+    vbegresos:number;
+    nomsucsii:string;
+    fechares:string | undefined;
+    numerores:number;
+    basecmaf:string;
+    ppm:number;
+    foliomensual:number;
+}
