@@ -56,15 +56,21 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
   };
 
   const obtenerFechaActual = () => {
-    const {empresa,periodo,mes} = getLocalStorageParams();
+    var {empresa,periodo,mes} = getLocalStorageParams();
     const fechaActual = new Date();
     const year = String(fechaActual.getFullYear());
     const month = String(fechaActual.getMonth() + 1).padStart(2, '0'); // Sumamos 1 ya que los meses comienzan desde 0
     const day = String(fechaActual.getDate()).padStart(2, '0');
+
+    if (mes.length<2) {
+      mes=0+mes;
+    }
+
     var fecha = periodo+"-"+mes+"-"+"01";
     if (month==mes && year == periodo) {
       fecha=year+"-"+month+"-"+day;
     }
+
     return fecha;
   };
 
@@ -101,7 +107,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
     });
 
     axios
-    .get(API_CONTABILIDAD + "/Centro/", { headers: getHeaders() })
+    .get(API_CONTABILIDAD + "/Obras/", { headers: getHeaders() })
     .then((response) => {
       setCentros(response.data);
     })
@@ -610,8 +616,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
                   <ContableButton onClick={handleCreateFolio}>
                     <PlusIcon className='w-4 h-4'/>
                   </ContableButton>
-                  
-                  <Input size="md" type='text' label="Nro Doc" name="noDoc" onChange={(e)=> setFolioValues({...folioValues, noDoc: Number(e.target.value)})} value={folioValues.noDoc} disabled={!editable}/>
+              
                   <div>
                     
                     <label className="block dark:text-white text-gray-700 text-sm font-bold mb-1"
@@ -636,11 +641,12 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
                         <Input size="md" type='text' label='Nombre' placeholder='' value={folioValues.nombre} onChange={(e)=> setFolioValues({...folioValues, nombre:e.target.value})} name="nombre" disabled={!editable}/>
                       </div>
                 </div>
-
-                <div className='flex gap-2 w-full'>
-                  <div className='w-4/5'>
-                  <Input size="md" type='text' label="Glosa" name="glosa" value={folioValues.glosa} onChange={(e)=> setFolioValues({...folioValues, glosa: e.target.value})} disabled={!editable}/>
-                  </div>
+                <div>
+                <Input size="md" type='text' label="Glosa" name="glosa" value={folioValues.glosa} onChange={(e)=> setFolioValues({...folioValues, glosa: e.target.value})} disabled={!editable}/>
+                </div>
+                <div className='flex gap-3 w-full'>
+                  
+                  <Input size="md" type='text' label="Nro Doc" name="noDoc" onChange={(e)=> setFolioValues({...folioValues, noDoc: Number(e.target.value)})} value={folioValues.noDoc} disabled={!editable}/>
                   <Input size="md" type='text' label="Banco" name="banco" value={folioValues.banco} onChange={(e)=> setFolioValues({...folioValues, banco: e.target.value})} disabled={!editable}/>
                   <Input size="md" type='text' label="Valor" name="valor" value={folioValues.valor} onChange={(e)=> setFolioValues({...folioValues, valor: Number(e.target.value)})} disabled={!editable}/>
                   
@@ -663,7 +669,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
             </div>
 
             <div id="configuracion" className='bg-white dark:bg-slate-800 p-2'>
-            <div className='flex gap-1'>
+              <div className='flex gap-1'>
 
                   <ContableButton onClick={() => setFolio(foliosData[0].numero)}>
                     <ChevronDoubleLeftIcon className='w-4 h-4'/>
@@ -681,9 +687,9 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
                     <ChevronDoubleRightIcon className='w-4 h-4'/>
                   </ContableButton>
 
-            </div>
+              </div>
 
-            <div className="flex gap-1 mt-10">
+              <div className="flex gap-1 mt-10">
                 <ContableButton onClick={handleAddLine} disabled={!editable}>
                     <DocumentPlusIcon className='w-4 h-4'/>
                 </ContableButton>
@@ -695,7 +701,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
                 <ContableButton onClick={handleSaveFolio} disabled={!editable}>
                   <CheckIcon className='w-4 h-4'/>
                 </ContableButton>
-            </div>
+              </div>
 
             </div>
         </div>
@@ -755,22 +761,25 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
                         </div>
                         <form onSubmit={(e) => e.preventDefault()} className="p-4 md:p-5">
                             <div className="grid grid-cols-2 gap-4 m-3 mb-5">
-                                <div className="col-span-2">
+                                <div className="col-span-2 dark:text-white">
                                   <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
                                       Cuenta
                                   </label>
-                                  <div className="grid grid-cols-3  dark:text-white ">
-                                      <div className=" bg-gray-50 border border-gray-300 text-gray-900 text-md rounded-lg focus:ring-primary-600 focus:border-primary-600  w-full p-2 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 col-span-2 flex">
-                                          {editedData.id && <p className="mr-2">{editedData.id}</p>}
+                                  <div className="flex">
+                                      <div className=" bg-gray-50 border border-gray-300 text-gray-900 text-md rounded-lg focus:ring-primary-600
+                                       focus:border-primary-600  w-full p-2 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400
+                                        dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 flex">
+                                          
                                           <input
                                               type="text"
-                                              className=" bg-transparent w-full mr-5 "
+                                              className="bg-transparent w-full"
                                               value={editedData.cuenta}
                                               onChange={(e) => handleInputChange('cuenta', editedData.referencia, e.target.value)}
                                           />
+                                          {editedData.cuenta_nombre && <p className="w-full mr-2">{editedData.cuenta_nombre}</p>}
                                       </div>
                                       <button
-                                          className="bg-gray-200 ml-3 rounded-md text-black text-sm"
+                                          className="bg-gray-200 px-2 ml-3 rounded-md text-black text-sm"
                                           onClick={() => {
                                               setCuentaSelector(true);
                                           }}
@@ -779,53 +788,74 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
                                       </button>
                                   </div>                                                      
                                 </div>
-                                <div className=" grid grid-cols-2 col-span-2  dark:text-white">
-																		<div >
-																			<label  className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                <div className="col-span-2  dark:text-white">
+																		
+																			<label  className="block mb-2 text-sm font-medium text-gray-900 ">
 																				Centro
 																			</label>
+
 																			<div className='flex'>
-																				<input type="text" 
-																					className={"bg-gray-50 border border-gray-300 text-gray-900 text-md rounded-lg focus:ring-primary-600 focus:border-primary-600  w-full p-1 mr-3 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 col-span-2 flex" + (editedData.cuentaObject?.centro !== "S" ? " opacity-25" : "")}
-																					value={editedData.centro} 
-																					onChange={(e) => handleInputChange('centro', editedData.referencia, e.target.value)} 
-																					disabled= {editedData.cuentaObject?.centro !== "S"}
-																				/>
-																				<button className="bg-gray-200 mr-3 rounded-md px-2 text-black" onClick={()=>{
+                                        <div className=" bg-gray-50 border border-gray-300 text-gray-900 text-md rounded-lg focus:ring-primary-600
+                                       focus:border-primary-600  w-full p-2 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400
+                                        dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 flex"> 
+                                          <input type="text" 
+                                            className={ "bg-transparent w-full"+(editedData.cuentaObject?.centro !== "S" ? " opacity-25" : "")}
+                                            value={editedData.centro} 
+                                            onChange={(e) => handleInputChange('centro', editedData.referencia, e.target.value)} 
+                                            disabled= {editedData.cuentaObject?.centro !== "S"}
+                                          />
+                                           {editedData.centro_nombre && <p className="w-full mr-2">{editedData.centro_nombre}</p>}
+                                        </div>
+																				
+																				<button className="bg-gray-200 px-2 ml-3 rounded-md text-black text-sm" onClick={()=>{
 																						setCentroSelector(true)
 																					}}>...</button>
 																			</div>
-																			
-																		</div>
-																		<div className='ml-1'>
-																			<label  className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-																				Rut
-																			</label>
-																			<div className='flex'>
-																				<input type="text" 
-																					className={"bg-gray-50 border border-gray-300 text-gray-900 text-md rounded-lg focus:ring-primary-600 focus:border-primary-600  w-full p-1 mr-3 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 col-span-2 flex" + (editedData.cuentaObject?.rut !== "S" ? " opacity-25" : "")}
-																					value={editedData.auxiliar} 
-																					onChange={(e) => handleInputChange('auxiliar', editedData.referencia, e.target.value)}
-																					disabled= {editedData.cuentaObject?.rut !== "S"} />
-																				<button className="bg-gray-200 ml-3 rounded-md px-2 text-black" onClick={()=>{
-																							setRutSelector(true)
-																						}}>...</button>
-																			</div>
-																			
-																		</div>
 
                                 </div>
-
-                                <div className="col-span-2 sm:col-span-1  dark:text-white">
-                                  <label  className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                <div  className="col-span-2  dark:text-white">
+                                    <label  className="block mb-2 text-sm font-medium text-gray-900 ">
+                                      Rut
+                                    </label>
+                                    <div className='flex'>
+                                      <div className=" bg-gray-50 border border-gray-300 text-gray-900 text-md rounded-lg focus:ring-primary-600
+                                        focus:border-primary-600  w-full p-2 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400
+                                      dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 flex">
+                                        <input type="text" 
+                                          className={"bg-transparent w-full" + (editedData.cuentaObject?.rut !== "S" ? " opacity-25" : "")}
+                                          value={editedData.auxiliar} 
+                                          onChange={(e) => handleInputChange('auxiliar', editedData.referencia, e.target.value)}
+                                          disabled= {editedData.cuentaObject?.rut !== "S"} />
+                                        {editedData.rut_nombre && <p className="w-full mr-2">{editedData.rut_nombre}</p>}
+                                      </div>
+                                      
+                                      <button className="bg-gray-200 ml-3 rounded-md px-2 text-black" onClick={()=>{
+                                            setRutSelector(true)
+                                          }}>...</button>
+                                    </div>
+                                </div>     
+                                <div className="col-span-2  dark:text-white">
+                                  <label  className="block mb-2 text-sm font-medium text-gray-900">
                                     Item
                                   </label>
-                                  <input type="text" className={"bg-gray-50 border border-gray-300 text-gray-900 text-md rounded-lg focus:ring-primary-600 focus:border-primary-600  w-full p-1 mr-3 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 col-span-2 flex" + (editedData.cuentaObject?.item !== "S" ? " opacity-25" : "")}
-                                    value={editedData.item} 
-                                    onChange={(e) => handleInputChange('item', editedData.referencia, e.target.value)}
-                                    disabled= {editedData.cuentaObject?.item !== "S"}
-                                  />
-                                </div> 
+                                  <div className='flex'>
+                                    <div className=" bg-gray-50 border border-gray-300 text-gray-900 text-md rounded-lg focus:ring-primary-600
+                                      focus:border-primary-600  w-full p-2 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400
+                                    dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 flex">
+                                      <input type="text" className={"bg-gray-50 border border-gray-300 text-gray-900 text-md rounded-lg focus:ring-primary-600 focus:border-primary-600  w-full p-1 mr-3 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 col-span-2 flex" + (editedData.cuentaObject?.item !== "S" ? " opacity-25" : "")}
+                                        value={editedData.item} 
+                                        onChange={(e) => handleInputChange('item', editedData.referencia, e.target.value)}
+                                        disabled= {editedData.cuentaObject?.item !== "S"}
+                                      />
+                                      {editedData.item_nombre && <p className="w-full mr-2">{editedData.item_nombre}</p>}
+                                    </div>
+                                    <button className="bg-gray-200 ml-3 rounded-md px-2 text-black" onClick={()=>{
+                                      setRutSelector(true)
+                                    }}>...</button>
+                                  </div>    
+                                 
+                                </div>      
+                                
                                 <div className="col-span-2 sm:col-span-1  dark:text-white">
                                   <label  className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
                                     Tg
@@ -942,8 +972,8 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
             handleSelectWithReference={(selected:any) => {
               setEditedData((prevData) => {
                 const updatedData = { ...prevData };
-                updatedData["cuenta"] = selected.nombre;
-                updatedData["id"] = selected.codigo;
+                updatedData["cuenta"] = selected.codigo;
+                updatedData["cuenta_nombre"] = selected.nombre;
                 updatedData["cuentaObject"] = selected;
                 return updatedData;
               });
@@ -961,6 +991,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
                 const updatedData = { ...prevData };
                 console.log(selected)
                 updatedData["auxiliar"] = selected.codigo+"-"+selected.dv;
+                updatedData["rut_nombre"] = selected.nombre
                 return updatedData;
               });
               setRutSelector(false)
@@ -976,7 +1007,8 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
               setEditedData((prevData) => {
                 const updatedData = { ...prevData };
                 console.log(selected)
-                updatedData["centro"] = selected.nombre;
+                updatedData["centro"] = selected.codigo;
+                updatedData["centro_nombre"] = selected.nombre;
                 return updatedData;
               });
               setCentroSelector(false)
