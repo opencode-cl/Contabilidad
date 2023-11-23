@@ -6,6 +6,7 @@ interface InputProps {
   label: string
   value: string | number | undefined
   name: string
+  className?:string
   placeholder?: string
   error?: boolean
   disabled?: boolean
@@ -16,6 +17,7 @@ interface InputProps {
 }
 
 const Input: FC<InputProps> = ({
+  className,
   type,
   label,
   value,
@@ -33,8 +35,8 @@ const Input: FC<InputProps> = ({
   const sizeInputClass = size === "md" ? "px-2 py-1 text-sm" : "px-3 py-2" 
 
   const titleClass = "block text-gray-700 text-sm dark:text-slate-200 font-bold " + sizeTitleClass
-  const inputClass = 'shadow appearance-none border rounded w-full text-gray-700 leading-tight focus:outline-none focus:shadow-outline dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 ' +sizeInputClass+ 
-  (error ? " border-red-500" : "")
+  const inputClass = 'shadow appearance-none border rounded w-full text-gray-700 leading-tight focus:outline-none focus:shadow-outline dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 ' + sizeInputClass +
+  (error ? " border-red-500" : "") + (className ? ` ${className}` : "");
 
   return (
     <div className="input-wrapper">

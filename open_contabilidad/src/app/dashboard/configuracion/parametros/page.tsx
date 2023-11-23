@@ -142,20 +142,41 @@ export default function paramsConfiguracion(){
                   name="month"
                   label="Mes"
                   value={month}
-                  onChange={(e:any) => setMonth(e.target.value)}
+                  onChange={(e) => {
+                    const inputValue = e.target.value;
+                
+                    // Validar que solo sean números y cumplan con los requisitos
+                    if (/^[0-9]*$/.test(inputValue)) {
+                      // Limitar la longitud del valor a 4 caracteres
+                      const truncatedValue = inputValue.slice(0, 2);
+                      setMonth(truncatedValue);
+                    }
+                  }}
                   error={false}
+              
                   required/>
               </div>
 
               <div className="">
               <Input 
-                  type="number"
-                  name="year"
-                  label="Año"
-                  value={year}
-                  onChange={(e:any) => setYear(e.target.value)}
-                  error={false}
-                  required/>
+                type="number"
+                name="year"
+                label="Año"
+                value={year}
+                onChange={(e) => {
+                  const inputValue = e.target.value;
+
+                  // Validar que solo sean números
+                  if (/^[0-9]*$/.test(inputValue)) {
+                    // Limitar la longitud del valor a 4 caracteres
+                    const truncatedValue = inputValue.slice(0, 4);
+                    setYear(truncatedValue);
+                  }
+                }}
+                
+                error={false}
+                required
+              />
               </div>
             </div>
             
