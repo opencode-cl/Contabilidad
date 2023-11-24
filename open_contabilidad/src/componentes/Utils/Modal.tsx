@@ -12,7 +12,7 @@ interface ModalProps {
   menu?:boolean;
 }
 
-const Modal: React.FC<ModalProps> = ({ children, onConfirm, title, onClose, width = "w-1/3", menu}) => {
+const Modal: React.FC<ModalProps> = ({ children, onConfirm, title, onClose, width = "w-1/2", menu}) => {
 
   return (
     <section>

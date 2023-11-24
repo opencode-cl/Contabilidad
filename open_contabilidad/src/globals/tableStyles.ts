@@ -3,7 +3,7 @@ import { defaultThemes } from "react-data-table-component";
 export const gridStyle = {
 	header: {
 		style: {
-			minHeight: '56px',
+			minHeight: '25px',
 		},
 	},
 	headRow: {
@@ -12,6 +12,7 @@ export const gridStyle = {
 			borderTopWidth: '1px',
 			borderTopColor: defaultThemes.default.divider.default,
 		},
+
 	},
 	headCells: {
 		style: {
@@ -20,6 +21,8 @@ export const gridStyle = {
 				borderRightWidth: '1px',
 				borderRightColor: defaultThemes.default.divider.default,
 			},
+			fontSize: '10px'
+
 		},
 	},
 	cells: {
@@ -28,7 +31,7 @@ export const gridStyle = {
 				borderRightStyle: 'solid',
 				borderRightWidth: '1px',
 				borderRightColor: defaultThemes.default.divider.default,
-				fontSize: '12px'
+				fontSize: '10px'
 			},
 		},
 	},
