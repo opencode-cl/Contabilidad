@@ -20,6 +20,7 @@ import Modal from '../Modal';
 import CentroSelector from './centroSeleccionador';
 import ItemsSelector from './itemSeleccionador';
 import { formatNumberWithPoints } from "@/variablesglobales";
+import FlujosSelector from './flujoSeleccionador';
 
 interface comprobantesContablesProps {
 }
@@ -31,18 +32,22 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
 
   const [isModalOpen, setModalOpen] = useState(false);
 
+  const [actualizar, setActualizar] = useState(0);
+
   const [tipo, setTipo] = useState("");
   const [folio, setFolio] = useState(0)
   const [foliosData, setFoliosData] = useState<any[]>([])
   const [lineasData, setLineasData] = useState<any[]>([])
   const [Items, setItemsData] = useState<any[]>([])
   
-  const [nombre,setNombre_rut] = useState([])
+  const [ruts,setRut] = useState([])
   const [centros,setCentros] = useState([])
   const [editable, setEditable] = useState(false)
   const [newCount, setNewCount] = useState(0);
 
   const [cuentasData, setCuentasData] = useState([])
+  const [flujosData, setFLujosData] = useState([])
+
 
   const [toasts, setToasts] = useState<IToast[]>([])
   const [confirmModal, setConfirmModal] = useState(false)
@@ -53,19 +58,30 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
   const [infoDoc, setInfoDoc] = useState(false)
   const [isRutSelectorFolioVisible, setRutFolioSelector] = useState(false)
   const [isCuentaSelectorFolioVisible, setCuentaFolioSelector] = useState(false)
-  
+  const [isFlujoSelectorVisible, setFlujoSelector] = useState(false)
+  const [editarDoc, setEditarDoc] = useState(false)
+  const [editarCpRef, setEditarCpRef] = useState(false)
+
+
 
   const formatDate = (dateString:any) => {
     const originalDate = new Date(dateString);
     // Verificar si la conversión a Date fue exitosa
+
     if (isNaN(originalDate.getTime())) {
         console.error(`Error al convertir la fecha: ${dateString}`);
-        return null; // O manejar el error de alguna manera
+        return null;
+    }
+    if (dateString === "2001-01-01" || dateString === "01/01/2001" || dateString === "01/01/0001") {
+      return "";
     }
     // Formatear la fecha como "yyyy-MM-dd"
     const formattedDate = originalDate.toISOString().split('T')[0];
+    
     return formattedDate;
   }
+
+
 
   const getLocalStorageParams = () => {
     const empresa = String(secureLocalStorage.getItem(SESSION_NAMES.EMPRESA_ID))!.replace(/"/g, '');
@@ -89,7 +105,6 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
     if (month==mes && year == periodo) {
       fecha=year+"-"+month+"-"+day;
     }
-
     return fecha;
   };
 
@@ -108,11 +123,10 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
     usuario:"",
     fechareg:"",
     tipo:"",
-    referencia: "NEW" + newCount
+    referencia: newCount
   }
   
   const [folioValues, setFolioValues] = useState(defaultFolioValues)
-  const [lineasEliminadas, setLineasEliminadas] = useState<any[]>([])
   const [editedData, setEditedData] = useState([]);
 
   useEffect(() => {
@@ -120,7 +134,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
     axios
     .get(API_CONTABILIDAD + "/Nombres/", { headers: getHeaders() })
     .then((response) => {
-      setNombre_rut(response.data);
+      setRut(response.data);
     })
     .catch((err) => {
       
@@ -131,6 +145,15 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
       headers: getHeaders() })
     .then((response) => {
       setCentros(response.data);
+    })
+    .catch((err) => {
+      
+    });
+
+    axios
+    .get(API_CONTABILIDAD + "/FLujos", { headers: getHeaders() })
+    .then((response) => {
+      setFLujosData(response.data);
     })
     .catch((err) => {
       
@@ -172,7 +195,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
             setFolio(response.data[0].numero)
             setFolioValues({
               noDoc: response.data[0].noDoc,
-              fecha: formatDate(response.data[0].fecha),
+              fecha: formatDate(response.data[0].fecha.split(" ")[0]),
               rut: response.data[0].rut,
               dv: response.data[0].dv,
               id:response.data[0].id,
@@ -180,14 +203,14 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
               glosa: response.data[0].glosa,
               banco: response.data[0].cuenta,
               valor: response.data[0].valor,
-              vencim: formatDate(response.data[0].vencim),
+              vencim: formatDate(response.data[0].vencim.split(" ")[0]),
               type: response.data[0].type,
               usuario:response.data[0].usuario,
               fechareg: response.data[0].fechaerg,
               tipo: response.data[0].tipo,
-              referencia: "NEW" + newCount
+              referencia: response.data[0].referencia
             })
-            
+            setNewCount(response.data[0].referencia);
           }else{
             setFolio(0)
             setFoliosData([])
@@ -203,9 +226,21 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
     };
   
     fetchData();
-  }, [tipo] );
+  }, [tipo,actualizar] );
 
   useEffect(()=>{
+
+    const foundObject = foliosData.find(item => item.numero === Number(folio))
+    if (foundObject) {
+      console.log(foundObject.fecha ); 
+        if(foundObject.fecha) {foundObject.fecha=formatDate(foundObject.fecha.split(" ")[0])}else{
+          foundObject.fecha="";
+        }
+        if(foundObject.vencim) {foundObject.vencim=formatDate(foundObject.vencim.split(" ")[0])}else{
+          foundObject.vencim="";
+        }
+        setFolioValues(foundObject)
+    }
 
     if(folio === 0){
       setLineasData([])
@@ -221,7 +256,6 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
               params: { empresa, periodo, mes, tipo, cuenta:folio },
               headers: getHeaders(),
             });
-            console.log(empresa,periodo,mes,folio)
             
             setLineasData(response.data);
           } else {
@@ -234,7 +268,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
     
       fetchData();
     }
-  }, [folio])
+  }, [folio,tipo])
 
   useEffect(() =>{
     setEditable(false)
@@ -386,7 +420,8 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
       cell: (row:any) => {
         return (
           <button
-          className="center text-white bg-amber-400 dark:bg-gray-500 dark:text-white focus:ring-4 focus:outline-none font-medium my-3 rounded-lg text-sm px-2 py-2.5 text-center "
+          className={"disabled:opacity-50 center text-white bg-amber-400 dark:bg-gray-500 dark:text-white focus:ring-4 focus:outline-none font-medium my-3 rounded-lg text-sm px-2 py-2.5 text-center "}
+          disabled={!editable}
           onClick={() => {handleToggleEdit(row.referencia)}}
         >
           <PencilSquareIcon className='w-4 h-4'/>
@@ -401,7 +436,8 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
       cell: (row:any) => {
         return (
           <button
-          className="center text-white  bg-red-400 dark:bg-gray-500 dark:text-white focus:ring-4 focus:outline-none font-medium my-3 rounded-lg text-sm px-3 py-2.5 text-center "
+          className="disabled:opacity-50 center text-white  bg-red-400 dark:bg-gray-500 dark:text-white focus:ring-4 focus:outline-none font-medium my-3 rounded-lg text-sm px-3 py-2.5 text-center "
+          disabled={!editable}
           onClick={() => {handleEraseLine(row.referencia)}}
         >
           <DocumentMinusIcon className='w-4 h-4'/>
@@ -414,7 +450,55 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
   ];
   
   const handleInputChange= (columnName:any, rowId:any, newValue:any) => {
-    console.log(newValue);
+
+    let selected;
+    
+    if(columnName=="cuenta"){
+      selected = cuentasData.find(cuenta => cuenta.codigo === Number(newValue));
+      if (selected!=undefined) {  
+        setEditedData((prevData) => {
+          const updatedData = { ...prevData };
+          updatedData["cuenta"] = newValue;
+          updatedData["cuenta_nombre"] = selected.nombre;
+          updatedData["cuentaObject"] = selected;
+          return updatedData;
+        });
+      }else{  
+        setEditedData((prevData) => {
+          const updatedData = { ...prevData };
+          updatedData["cuenta"] = newValue;
+          updatedData["cuenta_nombre"] = "";
+          updatedData["cuentaObject"] = null;
+          return updatedData;
+        });
+      }
+    }else if (columnName === "centro"){
+      selected = centros.find(centro => centro.codigo === Number(newValue));
+    }else if (columnName === "item"){
+      selected = Items.find(item => item.codigo === Number(newValue));
+    }else if (columnName === "flujo"){
+      selected = flujosData.find(flujo => flujo.codigo === Number(newValue));
+    }else if (columnName === "auxiliar"){
+      selected = ruts.find( rut => rut.codigo === Number(newValue));
+    }
+
+    if(columnName === "auxiliar"|| columnName === "flujo" || columnName === "item" || columnName === "centro"){
+      if (selected!=undefined) {  
+        setEditedData((prevData) => {
+          const updatedData = { ...prevData };
+          updatedData[columnName] = newValue;
+          updatedData[columnName+'_nombre']  = selected.nombre;
+          return updatedData;
+        });
+      }else{  
+        setEditedData((prevData) => {
+          const updatedData = { ...prevData };
+          updatedData[columnName] = newValue;
+          updatedData[columnName+'_nombre'] = "";
+          return updatedData;
+        });
+      }
+    }
 
     if (columnName!= "feDoc" || columnName!= "feVen") {
       setEditedData((prevData) => {
@@ -422,12 +506,11 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
         updatedData[columnName] = newValue;
         return updatedData;
       });;
-    }
+    } 
     else{
-      const newDate = new Date(newValue);
       setEditedData((prevData) => {
         const updatedData = { ...prevData };
-        updatedData[columnName] = formatDate(Date);
+        updatedData[columnName] = newValue;
         return updatedData;
       });;
     }
@@ -436,23 +519,98 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
   }
 
   const handleEditChange= () => {
-    setLineasData((prevLineasData) => {
-      // Puedes agregar la lógica necesaria para determinar qué línea se está editando actualmente.
-      // Supongamos que tienes una variable llamada currentEditingRow que contiene la referencia de la fila que se está editando.
-  
-      const updatedLineasData = prevLineasData.map((fila) =>
-        fila.referencia === editedData.referencia ? editedData : fila
-      );
-      
-      return updatedLineasData;
-    });
-    setModalOpen(false);
-    setEditedData([]);
-    // También puedes restablecer el estado de EditedData si es necesario
+
+
+    const {isValidData,errors} = verificarDatosEditados();
+
+
+    if (isValidData) {
+      const cleanedEditedData = { ...editedData };
+      delete cleanedEditedData.cuenta_nombre;
+      delete cleanedEditedData.auxiliar_nombre;
+      delete cleanedEditedData.flujo_nombre;
+      delete cleanedEditedData.obra_nombre;
+      delete cleanedEditedData.item_nombre;
+      delete cleanedEditedData.cuentaObject;
+
+      setLineasData((prevLineasData) => {
+        const updatedLineasData = prevLineasData.map((fila) =>
+          fila.referencia === cleanedEditedData.referencia ? cleanedEditedData : fila
+        );
+
+        return updatedLineasData;
+      });
+
+      setModalOpen(false);
+      setEditedData([]);
+    } else {
+
+      setToasts([...toasts, dangerToast(`${errors} no existen en la base de datos.`)])
+
+    }
+
   }
+
+  const verificarDatosEditados = () => {
+    let isValidData = true;
+    let errors = [];
+    
+    if (!cuentasData.some((cuenta) => cuenta.codigo === editedData.cuenta)) {
+      errors.push("Cuenta");
+      isValidData = false;
+      return { isValidData, errors };
+    }
+    if (editedData.cuentaObject?.rut != "N") {
+      if ( !ruts.some((rut) => rut.codigo === editedData.auxiliar)) {
+        errors.push("Rut");
+        isValidData = false;
+      }
+    }
+    if (editedData.cuentaObject?.centro != "N") {
+      if ( !centros.some((centro) => centro.codigo === editedData.obra)) {
+        errors.push("Centro");
+        isValidData = false;
+      }
+    }
+    if (editedData.cuentaObject?.item != "N") {
+      if ( !Items.some((item) => item.codigo === editedData.item)) {
+        errors.push("Item");
+        isValidData = false;
+      }
+    }
+    if (editedData.flujo !== 0 && !flujosData.some((flujo) => flujo.codigo === editedData.flujo)) {
+      errors.push("Flujo");
+      isValidData = false;
+    }    
+
+    return { isValidData, errors };
+  };
 
   const handleToggleEdit = (referencia:any) => {
     const selectedData = lineasData.find((fila) => fila.referencia === referencia);
+   
+    const cuenta = (cuentasData.find((cuenta) => cuenta.codigo === selectedData.cuenta));
+      if (cuenta) {
+        selectedData["cuenta_nombre"] = cuenta.nombre;
+        selectedData["cuentaObject"] = cuenta;
+      const centro = centros.find(centro => centro.codigo === selectedData.obra);
+      if (centro) {
+        selectedData["obra_nombre"] = centro.nombre;
+      }
+      const item = Items.find(item => (item.codigo === Number(selectedData.item)));
+      if (item) {
+        selectedData["item_nombre"] = item.nombre;
+      }
+      const rut = ruts.find(rut => (rut.codigo === Number(selectedData.auxiliar)));
+      if (rut && (rut.codigo!=0)) {
+        selectedData["auxiliar_nombre"] = rut.nombre
+      }
+      const flujo = flujosData.find(flujo => (flujo.codigo === selectedData.flujo));
+      if (flujo) {
+        selectedData["flujo_nombre"] = flujo.nombre;
+      }
+    }
+    
     setEditedData(selectedData);
     setModalOpen(true);
   };
@@ -470,65 +628,31 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
     setEditedData([]);
   };
 
-  const handleSearch = () => {
-    /// Rellenar con una busqyeda de los numero de folio ?????
-    try {
-      // Your existing code...
-    } catch (error) {
-      console.error('Error in handleSearch:', error);
-    }
-  }
 
   const handleLeft = () =>{
     if(foliosData.length > 0 && foliosData[0].numero < folio){
       const number=Number(folio)-1
       setFolio(number)
-      const foundObject = foliosData.find(item => item.numero === number)
-      if(foundObject){
-        if(foundObject.fecha) foundObject.fecha=formatDate(foundObject.fecha)
-        if(foundObject.vencim) foundObject.vencim=formatDate(foundObject.vencim)
-        setFolioValues(foundObject)
-      }
     }
   }
   const handleRight = () =>{
     if(foliosData.length > 0 && foliosData.at(-1).numero > folio){
       const number=Number(folio)+1
       setFolio(number)
-      const foundObject = foliosData.find(item => item.numero === number)
-      if (foundObject) {
-        if(foundObject.fecha) foundObject.fecha=formatDate(foundObject.fecha)
-        if(foundObject.vencim) foundObject.vencim=formatDate(foundObject.vencim)
-        setFolioValues(foundObject)
-
-      }
     }
   }
 
   const handleFinal = () =>{
       setFolio(foliosData.at(-1).numero)
-      const foundObject = foliosData.find(item => item.numero === foliosData.at(-1).numero)
-      if(foundObject){
-        if(foundObject.fecha) foundObject.fecha=formatDate(foundObject.fecha)
-        if(foundObject.vencim) foundObject.vencim=formatDate(foundObject.vencim)
-        setFolioValues(foundObject)
-    }
   }
 
   const handleStart = () =>{
       setFolio(foliosData[0].numero)
-      const foundObject = foliosData.find(item => item.numero === foliosData[0].numero)
-      
-      if(foundObject){
-        if(foundObject.fecha) foundObject.fecha=formatDate(foundObject.fecha)
-        if(foundObject.vencim) foundObject.vencim=formatDate(foundObject.vencim)
-        setFolioValues(foundObject)
-      }
   }
 
   const handleAddLine = () =>{
     setNewCount(newCount+1)
-    setLineasData([...lineasData, {cuenta:"", feDoc: "",noDoc:"0", debe: "0", haber: "0", feVen:"", item:0, auxiliar:0, td:0, codigoCP:0, flujo:0, type:"new", referencia:"NEW"+newCount}])
+    setLineasData([...lineasData, {cuenta:0, feDoc: "",noDoc:0, debe: 0, haber: 0, feVen:"", item:0, auxiliar:-1, td:0, codigoCP:0, flujo:0, type:"new", referencia:newCount}])
   }   
 
   const handleEraseLine = (referencia:any) => {
@@ -537,11 +661,18 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
     if (selectedLinea) {
       // Filtra las líneas excluyendo aquella que tiene la referencia que deseas eliminar
       const updatedLineasData = lineasData.filter((fila) => fila.referencia !== referencia);
-  
-      // Actualiza el estado con las líneas filtradas
       setLineasData(updatedLineasData);
     }
 
+  }
+
+  const handleSearch = () => {
+    /// Rellenar con una busqyeda de los numero de folio ?????
+    try {
+
+    } catch (error) {
+      console.error('Error in handleSearch:', error);
+    }
   }
 
   const handleCreateFolio = () =>{
@@ -554,13 +685,46 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
     if(foliosData.length > 0){
 
         if(folioValues.type === "new" ){
-          setFolioValues({...defaultFolioValues, type:"new"})
+          setFolioValues({
+            noDoc: 0,
+            fecha: obtenerFechaActual(),
+            rut: 0,
+            dv:0,
+            id:0,
+            nombre: "",
+            glosa: "",
+            banco: "",
+            valor: 0,
+            vencim: "",
+            type: "new",
+            usuario:"",
+            fechareg: "",
+            tipo: "",
+            referencia: newCount
+          })
           setFolio(foliosData.at(-1).numero)
           setLineasData([])
           return
         }
 
-        setFolioValues({...defaultFolioValues, type:"new"})
+        setFolioValues({
+          noDoc: 0,
+          fecha: obtenerFechaActual(),
+          rut: 0,
+          dv:0,
+          id:0,
+          nombre: "",
+          glosa: "",
+          banco: "",
+          valor: 0,
+          vencim: "",
+          type: "new",
+          usuario:"",
+          fechareg: "",
+          tipo: "",
+          referencia: newCount
+        })
+
         setFolio(foliosData.at(-1).numero + 1)
         setFoliosData([...foliosData, {numero: foliosData.at(-1).numero + 1}]);
       }
@@ -582,7 +746,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
           usuario:"",
           fechareg: "",
           tipo: "",
-          referencia: "NEW" + newCount
+          referencia: newCount
         })
       }
 
@@ -634,7 +798,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
 
     const { empresa, periodo, mes } = getLocalStorageParams();
 
-    let data = lineasData.filter(item => item.action === "edit")
+    let data = lineasData
 
     data = data.map(item => {
       if(item.type === "new"){
@@ -643,12 +807,33 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
         item.tipo = tipo;
         item.numero = folio;
         item.referencia = 0;
-        item.dv = "0";
         item.usuario = secureLocalStorage.getItem("USER") as string;
         item.fechareg = new Date().toISOString().split('T')[0];
-
-      }else{
+        if (!item.fedoc) {
+          item.feDoc = "0000-00-00"; 
+        }
+        if(!item.feVen){
+          item.feVen = "0000-00-00";
+        }
+      }else{  
         item.type === "update"
+        let fedoc=formatDate(item.feDoc.split(" ")[0]);
+        let feven=formatDate(item.feVen.split(" ")[0]);
+        let fecha=formatDate(item.fecha.split(" ")[0]);
+        item.referencia = 0;
+        let fechareg= new Date().toISOString().split('T')[0];
+        
+        item.feDoc = fedoc; 
+        item.fechareg = fechareg;
+        item.feVen = feven; 
+        item.fecha = fecha; 
+        if (!item.fedoc) {
+          item.feDoc = "0000-00-00"; 
+        }
+        if(!item.feVen){
+          item.feVen = "0000-00-00";
+        }
+
       }
 
       item.debe = Number(item.debe);
@@ -658,25 +843,53 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
     })
 
     const folioObject:any = folioValues;
-    const folioLineas = data.concat(lineasEliminadas) as any
+    const folioLineas = data
+
 
     if(folioObject.type === "new"){
       folioObject.usuario = secureLocalStorage.getItem("USER") as string;
       folioObject.fechareg = new Date().toISOString().split('T')[0];
-      folioObject.empresa = empresa;
-      folioObject.periodo = periodo;
+      folioObject.empresa = Number(empresa);
+      folioObject.periodo = Number(periodo);
       folioObject.tipo = tipo;
-      folioObject.numero = folio;
-      folioObject.value = debe;
-      folioObject.debe = debe;
-      folioObject.haber = haber;
+      folioObject.numero = Number(folio);
+      folioObject.valor = Number(debe);
+      folioObject.debe = Number(debe);
+      folioObject.haber = Number(haber);
       folioObject.fecha = folioObject.fecha === "" ? "0000-00-00" : folioObject.fecha;
       folioObject.vencim = folioObject.vencim === "" ? "0000-00-00" : folioObject.vencim;
-      folioObject.dv = "";
+      folioObject.referencia = 0;
+
+      console.log(folioObject)
+      console.log(folioLineas)
 
       axios.post(API_CONTABILIDAD + "/Folios/completo", {folio: folioObject, lineas:folioLineas} , {headers: getHeaders()})
       .then((response) => {
-        setFolioValues({...folioValues, type: ""})
+        setActualizar(actualizar+1);
+      }).catch((error) => {
+        setToasts([...toasts, dangerToast("Error en la operación.")])
+      });
+    }else{
+
+      folioObject.usuario = secureLocalStorage.getItem("USER") as string;
+      folioObject.fechareg = new Date().toISOString().split('T')[0];
+      folioObject.empresa = Number(empresa);
+      folioObject.periodo = Number(periodo);
+      folioObject.tipo = tipo;
+      folioObject.numero = Number(folio);
+      folioObject.valor = Number(debe);
+      folioObject.debe = Number(debe);
+      folioObject.haber = Number(haber);
+      folioObject.fecha = folioObject.fecha === "" ? "0000-00-00" : folioObject.fecha;
+      folioObject.vencim = folioObject.vencim === "" ? "0000-00-00" : folioObject.vencim;
+
+      
+      console.log(folioObject)
+      console.log(folioLineas)
+
+      axios.post(API_CONTABILIDAD + "/Folios/completo", {folio: folioObject, lineas:folioLineas} , {headers: getHeaders()})
+      .then((response) => {
+        setActualizar(actualizar+1);
       }).catch((error) => {
         setToasts([...toasts, dangerToast("Error en la operación.")])
       });
@@ -739,7 +952,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
                       <div className='my-auto mt-6 mx-1'>
                         -
                       </div>
-                      <Input className='w-11' size='md' type='text' label='Dv' placeholder='11.111.111-1' name="dv" value={folioValues.dv} onChange={(e) => {
+                      <Input className='w-11' size='md' type='text' label='Dv' name="dv" value={folioValues.dv} onChange={(e) => {
                          
                          const inputValue = e.target.value
                          if (/^[0-9]*$/.test(inputValue)) {
@@ -834,7 +1047,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
             theme={theme}
           />
           </div>
-          <div className=''>
+          <div className='mt-3'>
           <table className='text-sm'>
             <tr>
               <td className=''>
@@ -870,20 +1083,18 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
                 onClick={handleModalClose}
               ></div>
               <div className={`max-h-screen-md overflow-y-auto flex items-center justify-center fixed top-0 right-0 bottom-0 left-0 z-60 ${isModalOpen ? '' : 'hidden'}`}>
-                  <div className="relative p-4  max-h-full">
+                  <div className="relative w-1/2 px-4 max-h-full">
                       <div className="relative bg-white rounded-lg shadow dark:bg-gray-700">
-                        <div className="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
+                        <div className="flex items-center justify-between px-4 md:p-5 border-b rounded-t dark:border-gray-600">
                           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                             Editar ... Contable
                           </h3>
-                          
                         </div>
                         
-                        
                         <form onSubmit={(e) => e.preventDefault()} >
-                            <div className=" flex-row p-4 md:p-5">
-                              <div className="col-span-2 grid grid-rows-5 gap-4 m-3 mb-5">
-                                <div className="col-span-2 dark:text-white">
+                            <div className="flex-row p-3 md:p-5">
+                              <div className="gap-4 mx-3 ">
+                                <div className="mb-2 col-span-2 dark:text-white">
                                   <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
                                       Cuenta
                                   </label>
@@ -893,7 +1104,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
                                         dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 flex">
                                           
                                           <input
-                                              type="text"
+                                              type="number"
                                               className="bg-transparent w-auto "
                                               value={editedData.cuenta}
                                               onChange={(e) => handleInputChange('cuenta', editedData.referencia, e.target.value)}
@@ -910,7 +1121,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
                                       </button>
                                   </div>                                                      
                                 </div>
-                                <div className="col-span-2  dark:text-white">
+                                <div className=" mb-2  col-span-2  dark:text-white">
 																		
 																			<label  className="block mb-2 text-sm font-medium text-gray-900 ">
 																				Centro
@@ -920,22 +1131,44 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
                                         <div className=" bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600
                                        focus:border-primary-600  w-full p-2 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400
                                         dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 flex"> 
-                                          <input type="text" 
+                                          <input type="number" 
                                             className={ "bg-transparent "+(editedData.cuentaObject?.obra !== "S" ? " opacity-25" : "")}
                                             value={editedData.obra} 
                                             onChange={(e) => handleInputChange('centro', editedData.referencia, e.target.value)} 
-                                            disabled= {editedData.cuentaObject?.obra !== "S"}
+                                            disabled= {editedData.cuentaObject?.obra != "S"}
                                           />
-                                           {editedData.centro_nombre && <p className=" mr-2">{editedData.centro_nombre}</p>}
+                                           {editedData.obra_nombre && <p className=" mr-2">{editedData.obra_nombre}</p>}
                                         </div>
 																				
-																				<button className="bg-gray-200 px-2 ml-3 rounded-md text-black text-sm" onClick={()=>{
+																				<button className="bg-gray-200 px-2 ml-3 rounded-md text-black text-sm" disabled= {editedData.cuentaObject?.obra != "S"} onClick={()=>{
 																						setCentroSelector(true)
 																					}}>...</button>
 																			</div>
 
                                 </div>
-                                <div  className="col-span-2  dark:text-white">
+                                    
+                                <div className="mb-2  col-span-2  dark:text-white">
+                                  <label  className="block mb-2 text-sm font-medium text-gray-900">
+                                    Item
+                                  </label>
+                                  <div className='flex'>
+                                    <div className=" bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600
+                                        focus:border-primary-600  w-full p-2 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400
+                                      dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 flex">
+                                      <input type="number" className={"bg-transparent" + (editedData.cuentaObject?.item !== "S" ? " opacity-25" : "")}
+                                        value={editedData.item} 
+                                        onChange={(e) => handleInputChange('item', editedData.referencia, e.target.value)}
+                                        disabled= {editedData.cuentaObject?.item != "S"}
+                                      />
+                                      {editedData.item_nombre && <p className="w-full mr-2">{editedData.item_nombre}</p>}
+                                    </div>
+                                    <button className="bg-gray-200 ml-3 rounded-md px-2 text-black" disabled= {editedData.cuentaObject?.item != "S"} onClick={()=>{
+                                      setItemsSelector(true)
+                                    }}>...</button>
+                                  </div>    
+                                 
+                                </div>  
+                                <div  className=" mb-2  col-span-2  dark:text-white">
                                     <label  className="block mb-2 text-sm font-medium text-gray-900 ">
                                       Rut
                                     </label>
@@ -943,147 +1176,109 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
                                       <div className=" bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600
                                         focus:border-primary-600  w-full p-2 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400
                                       dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 flex">
-                                        <input type="text" 
+                                        <input type="number" 
                                           className={"bg-transparent" + (editedData.cuentaObject?.rut !== "S" ? " opacity-25" : "")}
                                           value={editedData.auxiliar} 
                                           onChange={(e) => handleInputChange('auxiliar', editedData.referencia, e.target.value)}
-                                          disabled= {editedData.cuentaObject?.rut !== "S"} />
-                                        {editedData.rut_nombre && <p className=" mr-2">{editedData.rut_nombre}</p>}
+                                          disabled= {editedData.cuentaObject?.rut != "S"} />
+                                        {editedData.auxiliar_nombre && <p className=" mr-2">{editedData.auxiliar_nombre}</p>}
                                       </div>
                                       
-                                      <button className="bg-gray-200 ml-3 rounded-md px-2 text-black" onClick={()=>{
+                                      <button className="bg-gray-200 ml-3 rounded-md px-2 text-black" disabled= {editedData.cuentaObject?.rut != "S"} onClick={()=>{
                                             setRutSelector(true)
                                           }}>...</button>
                                     </div>
                                 </div>     
-                                <div className="col-span-2  dark:text-white">
-                                  <label  className="block mb-2 text-sm font-medium text-gray-900">
-                                    Item
-                                  </label>
-                                  <div className='flex'>
-                                    <div className=" bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600
-                                      focus:border-primary-600  w-full p-2 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400
-                                    dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 flex">
-                                      <input type="text" className={"bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600  w-full p-1 mr-3 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 col-span-2 flex" + (editedData.cuentaObject?.item !== "S" ? " opacity-25" : "")}
-                                        value={editedData.item} 
-                                        onChange={(e) => handleInputChange('item', editedData.referencia, e.target.value)}
-                                        disabled= {editedData.cuentaObject?.item !== "S"}
-                                      />
-                                      {editedData.item_nombre && <p className="w-full mr-2">{editedData.item_nombre}</p>}
-                                    </div>
-                                    <button className="bg-gray-200 ml-3 rounded-md px-2 text-black" onClick={()=>{
-                                      setItemsSelector(true)
-                                    }}>...</button>
-                                  </div>    
-                                 
-                                </div>      
-                                <div className="col-span-2  dark:text-white">
-                                  <label  className="block mb-2 w-full text-sm font-medium text-gray-900 dark:text-white">
-                                    Glosa
-                                  </label>
-                                  <input type="text" className="bg-gray-50 border border-gray-300 text-gray-900 text-md rounded-lg focus:ring-primary-600 focus:border-primary-600  w-full p-1 mr-3 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 col-span-2 flex" value={editedData.glosa}
-                                  onChange={(e) => handleInputChange('glosa', editedData.referencia, e.target.value)} />
-                                  
-                                </div>
+                                
                               </div>
-                              <div className="grid grid-cols-3 gap-4 m-3 mb-5">
-                                  <div className="col-span-2 sm:col-span-1  dark:text-white">
-                                    <label  className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                                      Tg
-                                    </label>
-                                    <input type="text" 
-                                    className="bg-gray-50 border border-gray-300 text-gray-900 text-md rounded-lg focus:ring-primary-600 focus:border-primary-600  w-full p-1 mr-3 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 col-span-2 flex" 
-                                    value={editedData.td} onChange={(e) => handleInputChange('td', editedData.referencia, e.target.value)} />
-
-                                  </div>
-                                  <div className="col-span-2 sm:col-span-1  dark:text-white">
-                                    <label  className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                              <div className="grid grid-cols-2  gap-4 m-3 ">
+                                  <div className="col-span-2 sm:col-span-1 dark:text-white">
+                                    <label  className="mb-2 text-sm font-medium text-gray-900 dark:text-white">
                                       Número Documento
                                     </label>
-                                    <input type="text" className="bg-gray-50 border border-gray-300 text-gray-900 text-md rounded-lg focus:ring-primary-600 focus:border-primary-600  w-full p-1 mr-3 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 col-span-2 flex" 
+                                    <input type="number" className="bg-gray-50 border border-gray-300 text-gray-900 text-md rounded-lg focus:ring-primary-600 focus:border-primary-600  w-full p-1 mr-3 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 col-span-2 flex" 
                                     value={editedData.noDoc} 
-                                    onChange={(e) => handleInputChange('noDoc', editedData.referencia, e.target.value)} />
-                                    
+                                    onChange={(e) => handleInputChange('noDoc', editedData.referencia, Number(e.target.value))} />
                                   </div>
-                                  <div className="col-span-2 sm:col-span-1  dark:text-white">
-                                    <label  className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                                      Fecha del Documento
-                                    </label>
-                                    <input type="date" className="bg-gray-50 border border-gray-300 text-gray-900 text-md rounded-lg focus:ring-primary-600 focus:border-primary-600  w-full p-1 mr-3 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 col-span-2 flex" 
-                                    value={formatDate(editedData.feDoc.split(" ")[0])} 
-                                    onChange={(e) => handleInputChange('feDoc', editedData.referencia, e.target.value)} />
-                                    
+                                  <div className='flex justify-center'>
+                                    <div className=" mr-3 dark:text-white">
+                                      <label  className="block mb-2  text-sm font-medium text-gray-900 dark:text-white">
+                                        Tipo y Fechas Doc
+                                      </label>
+                                      <button className="bg-gray-200 w-full  rounded-md text-black"  onClick={()=>{
+                                              setEditarDoc(true)
+                                            }}>...</button>
+                                    </div>
+                                    <div className="ml-3 dark:text-white">
+                                      <label  className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                        Cp / NºReferencia
+                                      </label>
+                                      <button className="bg-gray-200 w-full rounded-md  text-black" onClick={()=>{
+                                        setEditarCpRef(true)
+                                      }}>...</button>
+                                    </div>
                                   </div>
                                   
                               </div>
-                              <div className="grid grid-cols-3 gap-4 m-3 mb-5">
                               
-                                  <div className="col-span-2 sm:col-span-1  dark:text-white">
-                                    <label  className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                                      N° Ref
-                                    </label>
-                                    <input type="text" 
-                                      className={"bg-gray-50 border border-gray-300 text-gray-900 text-md rounded-lg focus:ring-primary-600 focus:border-primary-600  w-full p-1 mr-3 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 col-span-2 flex" + (editedData.cuentaObject?.nroRef !== "S" ? " opacity-25" : "")}
-                                      value={editedData.nroRef} 
-                                      onChange={(e) => handleInputChange('nroRef', editedData.referencia, e.target.value)}
-                                      disabled= {editedData.cuentaObject?.nroRef !== "S"} />
-                                    
-                                  </div>
-                                  <div className="col-span-2 sm:col-span-1  dark:text-white">
-                                    <label  className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                                      CP
-                                    </label>
-                                    <input type="text" 
-                                      className={"bg-gray-50 border border-gray-300 text-gray-900 text-md rounded-lg focus:ring-primary-600 focus:border-primary-600  w-full p-1 mr-3 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 col-span-2 flex" + (editedData.cuentaObject?.codigocp !== "S" ? " opacity-25" : "")}
-                                      value={editedData.codigoCP} 
-                                      onChange={(e) => handleInputChange('codigoCP', editedData.referencia, e.target.value)}
-                                      disabled= {editedData.cuentaObject?.codigocp !== "S"} />
-                                    
-                                  </div>
-                                  <div className="col-span-2 sm:col-span-1  dark:text-white">
-                                    <label  className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                                      Debe
-                                    </label>
-                                    <input type="text" className="bg-gray-50 border border-gray-300 text-gray-900 text-md rounded-lg focus:ring-primary-600 focus:border-primary-600  w-full p-1 mr-3 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 col-span-2 flex" 
-                                    value={editedData.debe} onChange={(e) => handleInputChange('debe', editedData.referencia, e.target.value)} />
-                                  </div>
 
-                                </div>
-
-                                <div className="grid grid-cols-3 gap-4 m-3 mb-5">
-                                  
+                                <div className="grid grid-cols-2 gap-4 m-3">
+                                  <div className="col-span-2 sm:col-span-1  dark:text-white">
+                                      <label  className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                        Debe
+                                      </label>
+                                      <input type="number" className="bg-gray-50 border border-gray-300 text-gray-900 text-md rounded-lg focus:ring-primary-600 focus:border-primary-600  w-full p-1 mr-3 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 col-span-2 flex" 
+                                      value={editedData.debe} disabled= {editedData.haber != 0} onChange={(e) => handleInputChange('debe', editedData.referencia, e.target.value)} />
+                                  </div>
                                   
                                   <div className="col-span-2 sm:col-span-1 dark:text-white">
                                     <label  className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
                                       Haber
                                     </label>
-                                    <input type="text" className="bg-gray-50 border border-gray-300 text-gray-900 text-md rounded-lg focus:ring-primary-600 focus:border-primary-600  w-full p-1 mr-3 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 col-span-2 flex" 
-                                    value={editedData.haber} onChange={(e) => handleInputChange('haber', editedData.referencia, e.target.value)} />
-
+                                    <input type="number" className="bg-gray-50 border border-gray-300 text-gray-900 text-md rounded-lg focus:ring-primary-600 focus:border-primary-600  w-full p-1 mr-3 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 col-span-2 flex" 
+                                    value={editedData.haber} disabled= {editedData.debe != 0 } onChange={(e) => handleInputChange('haber', editedData.referencia, e.target.value)} />
                                     
                                   </div>
-                                  <div className="col-span-2 sm:col-span-1  dark:text-white">
-                                    <label  className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                                      Vencimiento
-                                    </label>
-                                    <input type="date" 
-                                      className="bg-gray-50 border border-gray-300 text-gray-900 text-md rounded-lg focus:ring-primary-600 focus:border-primary-600  w-full p-1 mr-3 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 col-span-2 flex" 
-                                      value={formatDate(editedData.feVen.split(" ")[0])} onChange={(e) => handleInputChange('feVen', editedData.referencia, e.target.value)} 
-                                    />
-                                    
-                                  </div>
-                                  <div className="col-span-2 sm:col-span-1  dark:text-white">
-                                    <label  className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                  
+                                </div>
+                                <div className="px-3 mb-2 col-span-2 sm:col-span-1  dark:text-white">
+                                  <label  className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
                                       Flujo
                                     </label>
-                                    <input type="text" className="bg-gray-50 border border-gray-300 text-gray-900 text-md rounded-lg focus:ring-primary-600 focus:border-primary-600  w-full p-1 mr-3 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 col-span-2 flex" value={editedData.flujo} onChange={(e) => handleInputChange('flujo', editedData.referencia, e.target.value)} />
-                                  </div>
+                                  <div className="flex">
+                                      <div className=" bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600
+                                       focus:border-primary-600  w-full p-2 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400
+                                        dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 flex">
+                
+                                          <input type="number" className=" bg-transparent" 
+                                             value={editedData.flujo} onChange={(e) => handleInputChange('flujo', editedData.referencia, e.target.value)} />
 
+                                          {editedData.flujo_nombre && <p className=" mr-2">{editedData.flujo_nombre}</p>}
+                                      </div>
+                                      <button
+                                          className="bg-gray-200 px-2 ml-3 rounded-md text-black text-sm"
+                                          onClick={() => {
+                                              setFlujoSelector(true);
+                                          }}
+                                      >
+                                          ...
+                                      </button>
+                                  </div>                                                      
                                 </div>
-                            </div>
+
+                               
+                                <div className="px-3 col-span-2  dark:text-white">
+                                  <label  className="block mb-2 w-full text-sm font-medium text-gray-900 dark:text-white">
+                                    Glosa
+                                  </label>
+                                  <input type="text" className="bg-gray-50 border border-gray-300 text-gray-900 text-md rounded-lg focus:ring-primary-600 focus:border-primary-600  w-full p-1 mr-3 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 col-span-2 flex" 
+                                  value={editedData.glosa}
+                                  onChange={(e) => handleInputChange('glosa', editedData.referencia, e.target.value)} />
                                   
+                                </div>
                                 
-                            <div className="flex h-20 mx-7 justify-center mt-2  dark:text-white">
+                            </div>
+                            <div className="flex h-20 justify-center mt-2  dark:text-white">
 																<button
 																		onClick={handleEditChange}
 																		className="text-white mr-6  w-auto h-10 bg-blue-500 hover:bg-blue-600 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-gray-600 dark:hover:bg-gray-800 dark:focus:ring-gray-800 "
@@ -1109,7 +1304,72 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
            </div>
           
           }
-        
+
+        {editarCpRef &&        
+        <section>
+          <Modal type="info" title='Editar Cp y Nº de referencia' onClose={()=>setEditarCpRef(false)}>
+                              
+            <div className=" dark:text-white">
+              <label  className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                N° Ref
+              </label>
+              <input type="text" 
+                className={"bg-gray-50 border border-gray-300 text-gray-900 text-md rounded-lg focus:ring-primary-600 focus:border-primary-600  w-full p-1 mr-3 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 col-span-2 flex" + (editedData.cuentaObject?.nroRef !== "S" ? " opacity-25" : "")}
+                value={editedData.nroRef} 
+                onChange={(e) => handleInputChange('nroRef', editedData.referencia, e.target.value)}
+                disabled= {editedData.cuentaObject?.nroRef != "S"} />
+              
+            </div>
+            <div className=" dark:text-white">
+              <label  className="block mt-2 text-sm font-medium text-gray-900 dark:text-white">
+                CP
+              </label>
+              <input type="number" 
+                className={"bg-gray-50 border border-gray-300 text-gray-900 text-md rounded-lg focus:ring-primary-600 focus:border-primary-600  w-full p-1 mr-3 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 col-span-2 flex" + (editedData.cuentaObject?.codigocp !== "S" ? " opacity-25" : "")}
+                value={editedData.codigoCP} 
+                onChange={(e) => handleInputChange('codigoCP', editedData.referencia, e.target.value)}
+                disabled= {editedData.cuentaObject?.codigocp != "S"} />
+              
+            </div>
+
+          </Modal>
+        </section>
+        }
+        {  editarDoc &&
+          <section>
+            <Modal type="info" title='Editar Fechas y el tipo de documento' onClose={()=>setEditarDoc(false)}>
+              <div className=" mb-2  dark:text-white">
+                <label  className="block mb-1 text-sm font-medium text-gray-900 dark:text-white">
+                  TD
+                </label>
+                <input type="number" 
+                className="bg-gray-50 border border-gray-300 text-gray-900 text-md rounded-lg focus:ring-primary-600 focus:border-primary-600  w-full p-1 mr-3 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 col-span-2 flex" 
+                value={editedData.td} onChange={(e) => handleInputChange('td', editedData.referencia, e.target.value)} />
+
+              </div>
+              
+              <div  className="mb-2 dark:text-white">
+                <label  className="block mb-1 text-sm font-medium text-gray-900 dark:text-white">
+                  Fecha del Documento
+                </label>
+                <input type="date" className="bg-gray-50 border border-gray-300 text-gray-900 text-md rounded-lg focus:ring-primary-600 focus:border-primary-600  w-full p-1 mr-3 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 col-span-2 flex" 
+                value={formatDate(editedData.feDoc.split(" ")[0])} 
+                onChange={(e) => handleInputChange('feDoc', editedData.referencia, e.target.value)} />
+                
+              </div>
+              <div className="dark:text-white">
+                <label  className="block mb-1 text-sm font-medium text-gray-900 dark:text-white">
+                  Vencimiento
+                </label>
+                <input type="date" 
+                  className="bg-gray-50 border border-gray-300 text-gray-900 text-md rounded-lg focus:ring-primary-600 focus:border-primary-600  w-full p-1 mr-3 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 col-span-2 flex" 
+                  value={formatDate(editedData.feVen.split(" ")[0])} onChange={(e) => handleInputChange('feVen', editedData.referencia, e.target.value)} 
+                />
+                
+              </div>
+            </Modal>
+          </section>
+        }
         {infoDoc &&
         <section>
           <Modal type="info" title='Informacion del documento' onClose={()=>setInfoDoc(false)}>
@@ -1121,10 +1381,10 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
               
             </p>
             <p>
-              Fecha del documento:{editedData.feDoc.split(" ")[0]}
+              Fecha del documento:{formatDate(editedData.feDoc.split(" ")[0])}
             </p>
             <p>
-             Fecha de Vencimineto: {editedData.feVen.split(" ")[0]}
+             Fecha de Vencimineto: {formatDate(editedData.feVen.split(" ")[0])}
               
             </p>
           </Modal>
@@ -1148,6 +1408,23 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
           />
         } 
 
+        {isFlujoSelectorVisible && 
+          <FlujosSelector 
+            flujos = {flujosData}
+            handleSelectWithReference={(selected:any) => {
+              setEditedData((prevData) => {
+                const updatedData = { ...prevData };
+                updatedData["flujo"] = selected.codigo;
+                updatedData["flujo_nombre"] = selected.nombre;
+                
+                return updatedData;
+              });
+              setFlujoSelector(false)
+            }}
+            onClose={()=>setFlujoSelector(false)}
+          />
+        } 
+
         {isCuentaSelectorFolioVisible && 
           <CuentaSelector 
             cuentas = {cuentasData}
@@ -1164,14 +1441,13 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
         } 
         {isRutSelectorFolioVisible && 
           <RutSelector 
-            nombres = {nombre}
+            nombres = {ruts}
             handleSelectWithReference={(selected:any) => {
               setFolioValues((prevData) => {
                 const updatedData = { ...prevData };
-                console.log(selected)
                 updatedData.rut = selected.codigo;
                 updatedData.nombre = selected.nombre;
-                updatedData.dv=selected.dv
+                updatedData.dv = selected.dv;
                 return updatedData;
               });
               setRutFolioSelector(false)
@@ -1182,13 +1458,12 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
 
         {isRutSelectorVisible && 
           <RutSelector 
-            nombres = {nombre}
+            nombres = {ruts}
             handleSelectWithReference={(selected:any) => {
               setEditedData((prevData) => {
                 const updatedData = { ...prevData };
-                console.log(selected)
                 updatedData["auxiliar"] = selected.codigo;
-                updatedData["rut_nombre"] = selected.nombre
+                updatedData["auxiliar_nombre"] = selected.nombre
                 return updatedData;
               });
               setRutSelector(false)
@@ -1203,9 +1478,8 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
             handleSelectWithReference={(selected:any) => {
               setEditedData((prevData) => {
                 const updatedData = { ...prevData };
-                console.log(selected)
-                updatedData["centro"] = selected.codigo;
-                updatedData["centro_nombre"] = selected.nombre;
+                updatedData.obra = selected.codigo;
+                updatedData["obra_nombre"] = selected.nombre;
                 return updatedData;
               });
               setCentroSelector(false)
@@ -1220,7 +1494,6 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
             handleSelectWithReference={(selected:any) => {
               setEditedData((prevData) => {
                 const updatedData = { ...prevData };
-                console.log(selected)
                 updatedData["item"] = selected.codigo;
                 updatedData["item_nombre"] = selected.nombre;
                 return updatedData;
