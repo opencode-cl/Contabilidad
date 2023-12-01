@@ -11,7 +11,7 @@ import secureLocalStorage from 'react-secure-storage';
 import { API_CONTABILIDAD, SESSION_NAMES } from '@/variablesglobales';
 import { RequestHeadersContext, RequestHeadersContextType } from '@/componentes/Providers/RequestHeadersProvider';
 import { tipoComprobantes } from '@/globals/contabilidad/tipoComprobantes';
-import { IToast, dangerToast } from '@/interfaces/IToast';
+import { IToast, dangerToast, defaultSuccessToast } from '@/interfaces/IToast';
 import ToastList from '../ToastList';
 import { ThemeContext } from '@/componentes/Providers/darkModeContext';
 import CuentaSelector from './cuentaSelector';
@@ -21,6 +21,8 @@ import CentroSelector from './centroSeleccionador';
 import ItemsSelector from './itemSeleccionador';
 import { formatNumberWithPoints } from "@/variablesglobales";
 import FlujosSelector from './flujoSeleccionador';
+import { Tooltip } from 'react-tooltip'
+import 'react-tooltip/dist/react-tooltip.css'
 
 interface comprobantesContablesProps {
 }
@@ -70,7 +72,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
 
     if (isNaN(originalDate.getTime())) {
         console.error(`Error al convertir la fecha: ${dateString}`);
-        return null;
+        return "";
     }
     if (dateString === "2001-01-01" || dateString === "01/01/2001" || dateString === "01/01/0001") {
       return "";
@@ -81,14 +83,25 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
     return formattedDate;
   }
 
-
-
   const getLocalStorageParams = () => {
     const empresa = String(secureLocalStorage.getItem(SESSION_NAMES.EMPRESA_ID))!.replace(/"/g, '');
     const periodo = String(secureLocalStorage.getItem(SESSION_NAMES.PERIODO_YEAR))!.replace(/"/g, '');
     const mes = String(secureLocalStorage.getItem(SESSION_NAMES.PERIODO_MONTH))!.replace(/"/g, '');
     return { empresa, periodo, mes };
   };
+
+  const modificarFechaDoc = (fecha:any) => {
+    if(fecha==="" || fecha===undefined ||  fecha===null){
+      return "";
+    }
+    // Dividir la fecha 
+    const partesFecha = fecha.split('-');
+    
+    // Fecha en formato DD/MM/YYYY
+    const fechaModificada = `${partesFecha[2]}/${partesFecha[1]}/${partesFecha[0]}`;
+    
+    return fechaModificada;
+  }
 
   const obtenerFechaActual = () => {
     var {empresa,periodo,mes} = getLocalStorageParams();
@@ -112,7 +125,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
     noDoc: 0,
     fecha: obtenerFechaActual(),
     rut: 0,
-    dv:0,
+    dv:"",
     id:0,
     nombre: "",
     glosa: "",
@@ -231,12 +244,12 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
   useEffect(()=>{
 
     const foundObject = foliosData.find(item => item.numero === Number(folio))
-    if (foundObject) {
-      console.log(foundObject.fecha ); 
-        if(foundObject.fecha) {foundObject.fecha=formatDate(foundObject.fecha.split(" ")[0])}else{
+    if (foundObject!=undefined && foundObject.referencia!=undefined  ) {
+
+        if(foundObject.fecha!=undefined) {foundObject.fecha=formatDate(foundObject.fecha.split(" ")[0])}else{
           foundObject.fecha="";
         }
-        if(foundObject.vencim) {foundObject.vencim=formatDate(foundObject.vencim.split(" ")[0])}else{
+        if(foundObject.vencim!=undefined) {foundObject.vencim=formatDate(foundObject.vencim.split(" ")[0])}else{
           foundObject.vencim="";
         }
         setFolioValues(foundObject)
@@ -328,12 +341,15 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
       selector: (row: any) => row.noDoc,
       cell: (row: any) => {
         return (
-          <button
-              className="center text-white bg-slate-500 dark:bg-gray-500 dark:text-white focus:ring-4 focus:outline-none my-3 rounded-lg px-2 py-2.5 text-center "
-              onClick={() => {handleInfoDoc(row.referencia)}}
+          <div>
+            <button
+              className="center text-white w-12 h-8 bg-slate-500 dark:bg-gray-500 dark:text-white focus:ring-4 focus:outline-none my-3 rounded-lg px-2 py-2.5 text-center "
+              data-tooltip-content="Información acerca del documento" data-tooltip-id='tooltipDoc' onClick={() => {handleInfoDoc(row.referencia)}}
             >
               {row.noDoc}
             </button>
+            <Tooltip id="tooltipDoc" place="top" ></Tooltip>
+          </div>
 
           
         );
@@ -472,7 +488,8 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
           return updatedData;
         });
       }
-    }else if (columnName === "centro"){
+    }else if (columnName === "obra"){
+      console.log("asdasd")
       selected = centros.find(centro => centro.codigo === Number(newValue));
     }else if (columnName === "item"){
       selected = Items.find(item => item.codigo === Number(newValue));
@@ -482,7 +499,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
       selected = ruts.find( rut => rut.codigo === Number(newValue));
     }
 
-    if(columnName === "auxiliar"|| columnName === "flujo" || columnName === "item" || columnName === "centro"){
+    if(columnName === "auxiliar"|| columnName === "flujo" || columnName === "item" || columnName === "obra"){
       if (selected!=undefined) {  
         setEditedData((prevData) => {
           const updatedData = { ...prevData };
@@ -545,7 +562,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
       setEditedData([]);
     } else {
 
-      setToasts([...toasts, dangerToast(`${errors} no existen en la base de datos.`)])
+      setToasts([...toasts, dangerToast(`${errors} no tienen datos validos.`)])
 
     }
 
@@ -554,31 +571,38 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
   const verificarDatosEditados = () => {
     let isValidData = true;
     let errors = [];
-    
-    if (!cuentasData.some((cuenta) => cuenta.codigo === editedData.cuenta)) {
+
+    if (editedData.glosa===undefined || editedData.glosa==="") {
+      errors.push("Glosa");
+      console.log(editedData.glosa);
+      isValidData = false;
+    }
+
+    if (!cuentasData.some((cuenta) => cuenta.codigo === Number(editedData.cuenta))) {
       errors.push("Cuenta");
       isValidData = false;
       return { isValidData, errors };
     }
     if (editedData.cuentaObject?.rut != "N") {
-      if ( !ruts.some((rut) => rut.codigo === editedData.auxiliar)) {
+      if ( !ruts.some((rut) => rut.codigo === Number(editedData.auxiliar))) {
         errors.push("Rut");
         isValidData = false;
       }
     }
+    console.log(editedData.cuentaObject?.centro)
     if (editedData.cuentaObject?.centro != "N") {
-      if ( !centros.some((centro) => centro.codigo === editedData.obra)) {
+      if ( !centros.some((centro) => centro.codigo === Number(editedData.obra))) {
         errors.push("Centro");
         isValidData = false;
       }
     }
     if (editedData.cuentaObject?.item != "N") {
-      if ( !Items.some((item) => item.codigo === editedData.item)) {
+      if ( !Items.some((item) => item.codigo === Number(editedData.item))) {
         errors.push("Item");
         isValidData = false;
       }
     }
-    if (editedData.flujo !== 0 && !flujosData.some((flujo) => flujo.codigo === editedData.flujo)) {
+    if ((editedData.flujo != 0 || editedData.flujo != "") && !flujosData.some((flujo) => flujo.codigo === Number(editedData.flujo))) {
       errors.push("Flujo");
       isValidData = false;
     }    
@@ -652,7 +676,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
 
   const handleAddLine = () =>{
     setNewCount(newCount+1)
-    setLineasData([...lineasData, {cuenta:0, feDoc: "",noDoc:0, debe: 0, haber: 0, feVen:"", item:0, auxiliar:-1, td:0, codigoCP:0, flujo:0, type:"new", referencia:newCount}])
+    setLineasData([...lineasData, {cuenta:0, feDoc: "",noDoc:0 ,obra:0, debe: 0, haber: 0, feVen:"", item:0, auxiliar:-1, td:0, codigoCP:0, flujo:0, type:"new", referencia:newCount}])
   }   
 
   const handleEraseLine = (referencia:any) => {
@@ -689,7 +713,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
             noDoc: 0,
             fecha: obtenerFechaActual(),
             rut: 0,
-            dv:0,
+            dv:"",
             id:0,
             nombre: "",
             glosa: "",
@@ -711,7 +735,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
           noDoc: 0,
           fecha: obtenerFechaActual(),
           rut: 0,
-          dv:0,
+          dv:"",
           id:0,
           nombre: "",
           glosa: "",
@@ -735,7 +759,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
           noDoc: 0,
           fecha: obtenerFechaActual(),
           rut: 0,
-          dv:0,
+          dv:"",
           id:0,
           nombre: "",
           glosa: "",
@@ -760,6 +784,11 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
 
     if(lineasData.length < 1){
       setToasts([...toasts, dangerToast("Folio no está asignado correctamente.")])
+      return;
+    }
+
+    if (folioValues.glosa==="" || folioValues.glosa===undefined) {
+      setToasts([...toasts, dangerToast("No ah ingresado una glosa al folio.")])
       return;
     }
 
@@ -793,6 +822,11 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
   
     if(debe !== haber){
       setToasts([...toasts, dangerToast("Debe requiere ser igual que el Haber.")])
+      return;
+    }
+
+    if (debe===0) {
+      setToasts([...toasts, dangerToast("El detalle tiene que se mayor a 0.")])
       return;
     }
 
@@ -866,6 +900,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
       axios.post(API_CONTABILIDAD + "/Folios/completo", {folio: folioObject, lineas:folioLineas} , {headers: getHeaders()})
       .then((response) => {
         setActualizar(actualizar+1);
+        setToasts([...toasts, defaultSuccessToast]) 
       }).catch((error) => {
         setToasts([...toasts, dangerToast("Error en la operación.")])
       });
@@ -890,6 +925,8 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
       axios.post(API_CONTABILIDAD + "/Folios/completo", {folio: folioObject, lineas:folioLineas} , {headers: getHeaders()})
       .then((response) => {
         setActualizar(actualizar+1);
+        setToasts([...toasts, defaultSuccessToast]) 
+        
       }).catch((error) => {
         setToasts([...toasts, dangerToast("Error en la operación.")])
       });
@@ -910,14 +947,14 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
                     <MagnifyingGlassIcon className='w-4 h-4'/>
                   </ContableButton>
 
-                  <ContableButton onClick={() => {
+                  <ContableButton tooltipText='Editar Folio' onClick={() => {
                    setEditable(!editable) 
                   }}
                   disabled={folio < 1}
                   >
                     <PencilSquareIcon className='w-4 h-4'/>
                   </ContableButton>
-                  <ContableButton onClick={handleCreateFolio}>
+                  <ContableButton tooltipText='Crear un nuevo Folio' onClick={handleCreateFolio}>
                     <PlusIcon className='w-4 h-4'/>
                   </ContableButton>
               
@@ -946,8 +983,10 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
                           const inputValue = e.target.value
                           if (/^[0-9]*$/.test(inputValue)) {
                             const truncatedValue = inputValue.slice(0, 8);
-                            setFolioValues({...folioValues, rut: Number(truncatedValue)})} 
+                            setFolioValues({...folioValues, rut: Number(truncatedValue)})
                           }
+                        }
+                          
                       } disabled={!editable}/>
                       <div className='my-auto mt-6 mx-1'>
                         -
@@ -957,10 +996,10 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
                          const inputValue = e.target.value
                          if (/^[0-9]*$/.test(inputValue)) {
                            const truncatedValue = inputValue.slice(0, 1);
-                           setFolioValues({...folioValues, dv: Number(truncatedValue)})} 
+                           setFolioValues({...folioValues, dv: (truncatedValue)})} 
                          }
                      } disabled={!editable}/>
-                      <ContableButton className=' ml-2 h-7 my-auto mt-6 '  onClick={()=>{ setRutFolioSelector(true)}}disabled={!editable}>
+                      <ContableButton tooltipText='Buscar Rut' className=' ml-2 h-7 my-auto mt-6 '  onClick={()=>{ setRutFolioSelector(true)}}disabled={!editable}>
                           <div >...</div>
                       </ContableButton>
                     </div>
@@ -968,17 +1007,17 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
                       <Input size="md" type='text' label='Nombre' placeholder='' value={folioValues.nombre} onChange={(e)=> setFolioValues({...folioValues, nombre:e.target.value})} name="nombre" disabled={!editable}/>
                     </div>
                 </div>
-                <div>
+                <div className='mb-1'>
                 <Input size="md" type='text' label="Glosa" name="glosa" value={folioValues.glosa} onChange={(e)=> setFolioValues({...folioValues, glosa: e.target.value})} disabled={!editable}/>
                 </div>
                 <div className='flex gap-3 w-full'>
                   
                   <Input size="md" type='text' label="Nro Doc" name="noDoc" onChange={(e)=> setFolioValues({...folioValues, noDoc: Number(e.target.value)})} value={folioValues.noDoc} disabled={!editable}/>
                   <Input size="md" type='text' label="Banco" name="banco" value={folioValues.banco} onChange={(e)=> setFolioValues({...folioValues, banco: e.target.value})} disabled={!editable}/>
-                  <ContableButton className=' ml-2 h-7 my-auto mt-6 '  onClick={()=>{ setCuentaFolioSelector(true)}}disabled={!editable}>
+                  <ContableButton tooltipText='Buscar Banco' className=' ml-2 h-7 my-auto mt-6 '  onClick={()=>{ setCuentaFolioSelector(true)}}disabled={!editable}>
                       <div >...</div>
                   </ContableButton>
-                  <Input size="md" type='text' label="Valor" name="valor" value={folioValues.valor} onChange={(e)=> setFolioValues({...folioValues, valor: Number(e.target.value)})} disabled={!editable}/>
+                  <Input size="md" type='text' label="Valor" name="valor" value={folioValues.valor} onChange={(e)=> setFolioValues({...folioValues, valor: Number(e.target.value)})} disabled={true}/>
                   
                   <div>
                   <label className="block dark:text-white text-gray-700 text-sm font-bold mb-1"
@@ -1001,35 +1040,31 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
             <div id="configuracion" className='bg-white dark:bg-slate-800 p-2'>
               <div className='flex gap-1'>
 
-                  <ContableButton onClick={handleStart}>
+                  <ContableButton tooltipText='Ir al primer folio' onClick={handleStart} disabled={tipo===""}>
                     <ChevronDoubleLeftIcon className='w-4 h-4'/>
                   </ContableButton>
 
-                  <ContableButton onClick={handleLeft}>
+                  <ContableButton tooltipText='Ir al folio anterior' onClick={handleLeft} disabled={tipo===""}>
                     <ChevronLeftIcon className='w-4 h-4'/>
                   </ContableButton>
 
-                  <ContableButton onClick={handleRight}>
+                  <ContableButton tooltipText='Ir al siguiente folio' onClick={handleRight} disabled={tipo===""}>
                     <ChevronRightIcon className='w-4 h-4'/>
                   </ContableButton>
                   
-                  <ContableButton onClick={handleFinal}>
+                  <ContableButton tooltipText='Ir al ultimo folio' onClick={handleFinal} disabled={tipo===""}>
                     <ChevronDoubleRightIcon className='w-4 h-4'/>
                   </ContableButton>
 
               </div>
 
-              <div className="flex gap-1 mt-10">
-                <ContableButton onClick={handleAddLine} disabled={!editable}>
-                    <DocumentPlusIcon className='w-4 h-4'/>
+              <div className="flex gap-1 ml-5 mt-12">
+                <ContableButton tooltipText='Agregar una nueva linea en el folio' onClick={handleAddLine} disabled={!editable}>
+                    <DocumentPlusIcon className='w-8 h-4'/>
                 </ContableButton>
 
-                <ContableButton onClick={handleEraseLine} disabled={!editable}>
-                    <DocumentMinusIcon className='w-4 h-4'/>
-                </ContableButton>
-
-                <ContableButton onClick={handleSaveFolio} disabled={!editable}>
-                  <CheckIcon className='w-4 h-4'/>
+                <ContableButton tooltipText='Guardar folio' onClick={handleSaveFolio} disabled={!editable}>
+                  <CheckIcon className='w-8 h-4'/>
                 </ContableButton>
               </div>
 
@@ -1099,17 +1134,17 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
                                       Cuenta
                                   </label>
                                   <div className="flex">
-                                      <div className=" bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600
+                                      <div className=" justify-between bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600
                                        focus:border-primary-600  w-full p-2 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400
                                         dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 flex">
                                           
                                           <input
                                               type="number"
-                                              className="bg-transparent w-auto "
+                                              className="bg-transparent ml-2 flex-grow "
                                               value={editedData.cuenta}
                                               onChange={(e) => handleInputChange('cuenta', editedData.referencia, e.target.value)}
                                           />
-                                          {editedData.cuenta_nombre && <p className=" mr-2">{editedData.cuenta_nombre}</p>}
+                                          {editedData.cuenta_nombre && <p className=" mr-8">{editedData.cuenta_nombre}</p>}
                                       </div>
                                       <button
                                           className="bg-gray-200 px-2 ml-3 rounded-md text-black text-sm"
@@ -1128,19 +1163,19 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
 																			</label>
 
 																			<div className='flex'>
-                                        <div className=" bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600
+                                        <div className=" justify-between bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600
                                        focus:border-primary-600  w-full p-2 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400
                                         dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 flex"> 
                                           <input type="number" 
-                                            className={ "bg-transparent "+(editedData.cuentaObject?.obra !== "S" ? " opacity-25" : "")}
+                                            className={ "bg-transparent ml-2 flex-grow"+(editedData.cuentaObject?.centro !== "S" ? " opacity-25" : "")}
                                             value={editedData.obra} 
-                                            onChange={(e) => handleInputChange('centro', editedData.referencia, e.target.value)} 
-                                            disabled= {editedData.cuentaObject?.obra != "S"}
+                                            onChange={(e) => handleInputChange('obra', editedData.referencia, e.target.value)} 
+                                            disabled= {editedData.cuentaObject?.centro != "S"}
                                           />
-                                           {editedData.obra_nombre && <p className=" mr-2">{editedData.obra_nombre}</p>}
+                                           {editedData.obra_nombre && <p className=" mr-8">{editedData.obra_nombre}</p>}
                                         </div>
 																				
-																				<button className="bg-gray-200 px-2 ml-3 rounded-md text-black text-sm" disabled= {editedData.cuentaObject?.obra != "S"} onClick={()=>{
+																				<button className="bg-gray-200 px-2 ml-3 rounded-md text-black text-sm" disabled= {editedData.cuentaObject?.centro != "S"} onClick={()=>{
 																						setCentroSelector(true)
 																					}}>...</button>
 																			</div>
@@ -1152,15 +1187,15 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
                                     Item
                                   </label>
                                   <div className='flex'>
-                                    <div className=" bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600
+                                    <div className=" justify-between bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600
                                         focus:border-primary-600  w-full p-2 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400
                                       dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 flex">
-                                      <input type="number" className={"bg-transparent" + (editedData.cuentaObject?.item !== "S" ? " opacity-25" : "")}
+                                      <input type="number" className={"bg-transparent ml-2 flex-grow" + (editedData.cuentaObject?.item !== "S" ? " opacity-25" : "")}
                                         value={editedData.item} 
                                         onChange={(e) => handleInputChange('item', editedData.referencia, e.target.value)}
                                         disabled= {editedData.cuentaObject?.item != "S"}
                                       />
-                                      {editedData.item_nombre && <p className="w-full mr-2">{editedData.item_nombre}</p>}
+                                      {editedData.item_nombre && <p className="mr-8">{editedData.item_nombre}</p>}
                                     </div>
                                     <button className="bg-gray-200 ml-3 rounded-md px-2 text-black" disabled= {editedData.cuentaObject?.item != "S"} onClick={()=>{
                                       setItemsSelector(true)
@@ -1173,15 +1208,15 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
                                       Rut
                                     </label>
                                     <div className='flex'>
-                                      <div className=" bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600
+                                      <div className=" justify-between bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600
                                         focus:border-primary-600  w-full p-2 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400
                                       dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 flex">
                                         <input type="number" 
-                                          className={"bg-transparent" + (editedData.cuentaObject?.rut !== "S" ? " opacity-25" : "")}
+                                          className={"bg-transparent ml-2 flex-grow" + (editedData.cuentaObject?.rut !== "S" ? " opacity-25" : "")}
                                           value={editedData.auxiliar} 
                                           onChange={(e) => handleInputChange('auxiliar', editedData.referencia, e.target.value)}
                                           disabled= {editedData.cuentaObject?.rut != "S"} />
-                                        {editedData.auxiliar_nombre && <p className=" mr-2">{editedData.auxiliar_nombre}</p>}
+                                        {editedData.auxiliar_nombre && <p className=" mr-8">{editedData.auxiliar_nombre}</p>}
                                       </div>
                                       
                                       <button className="bg-gray-200 ml-3 rounded-md px-2 text-black" disabled= {editedData.cuentaObject?.rut != "S"} onClick={()=>{
@@ -1198,24 +1233,26 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
                                     </label>
                                     <input type="number" className="bg-gray-50 border border-gray-300 text-gray-900 text-md rounded-lg focus:ring-primary-600 focus:border-primary-600  w-full p-1 mr-3 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 col-span-2 flex" 
                                     value={editedData.noDoc} 
-                                    onChange={(e) => handleInputChange('noDoc', editedData.referencia, Number(e.target.value))} />
+                                    onChange={(e) => handleInputChange('noDoc', editedData.referencia, (e.target.value))} />
                                   </div>
                                   <div className='flex justify-center'>
                                     <div className=" mr-3 dark:text-white">
                                       <label  className="block mb-2  text-sm font-medium text-gray-900 dark:text-white">
                                         Tipo y Fechas Doc
                                       </label>
-                                      <button className="bg-gray-200 w-full  rounded-md text-black"  onClick={()=>{
+                                      <button data-tooltip-id="tooltipDoc" data-tooltip-content="Modificar el tipo y fechas del documento" className="bg-gray-200 w-full  rounded-md text-black"  onClick={()=>{
                                               setEditarDoc(true)
-                                            }}>...</button>
+                                      }}>...</button>
+                                        <Tooltip id="tooltipDoc" place="bottom" ></Tooltip>
                                     </div>
                                     <div className="ml-3 dark:text-white">
                                       <label  className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
                                         Cp / NºReferencia
                                       </label>
-                                      <button className="bg-gray-200 w-full rounded-md  text-black" onClick={()=>{
+                                      <button data-tooltip-id="tooltipCpRef" data-tooltip-content="Modificar Cp y Nº de referencia" className="bg-gray-200 w-full rounded-md  text-black" onClick={()=>{
                                         setEditarCpRef(true)
                                       }}>...</button>
+                                      <Tooltip id="tooltipCpRef" place="bottom" ></Tooltip>
                                     </div>
                                   </div>
                                   
@@ -1246,14 +1283,14 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
                                       Flujo
                                     </label>
                                   <div className="flex">
-                                      <div className=" bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600
+                                      <div className=" justify-between bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600
                                        focus:border-primary-600  w-full p-2 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400
                                         dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 flex">
                 
-                                          <input type="number" className=" bg-transparent" 
+                                          <input type="number" className=" bg-transparent ml-2 flex-grow" 
                                              value={editedData.flujo} onChange={(e) => handleInputChange('flujo', editedData.referencia, e.target.value)} />
 
-                                          {editedData.flujo_nombre && <p className=" mr-2">{editedData.flujo_nombre}</p>}
+                                          {editedData.flujo_nombre && <p className=" mr-8">{editedData.flujo_nombre}</p>}
                                       </div>
                                       <button
                                           className="bg-gray-200 px-2 ml-3 rounded-md text-black text-sm"
@@ -1278,17 +1315,17 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
                                 </div>
                                 
                             </div>
-                            <div className="flex h-20 justify-center mt-2  dark:text-white">
+                            <div className="flex justify-between h-20 justify-center mt-2  dark:text-white">
 																<button
 																		onClick={handleEditChange}
-																		className="text-white mr-6  w-auto h-10 bg-blue-500 hover:bg-blue-600 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-gray-600 dark:hover:bg-gray-800 dark:focus:ring-gray-800 "
+																		className="text-white ml-16  w-auto h-10 bg-blue-500 hover:bg-blue-600 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-gray-600 dark:hover:bg-gray-800 dark:focus:ring-gray-800 "
 																>
 																		Agregar
 																</button>
 																<button
 																		type="button"
 																		onClick={handleModalClose}
-																		className="text-white ml-6 w-auto h-10 bg-red-500 hover:bg-red-600 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-gray-500 dark:hover:bg-gray-800 dark:focus:ring-gray-800"
+																		className="text-white mr-16 w-auto h-10 bg-red-500 hover:bg-red-600 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-gray-500 dark:hover:bg-gray-800 dark:focus:ring-gray-800"
 																		data-modal-toggle="crud-modal"
 																>
 																		Cancelar
@@ -1381,10 +1418,10 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
               
             </p>
             <p>
-              Fecha del documento:{formatDate(editedData.feDoc.split(" ")[0])}
+              Fecha del documento:{modificarFechaDoc(formatDate(editedData.feDoc.split(" ")[0]))}
             </p>
             <p>
-             Fecha de Vencimineto: {formatDate(editedData.feVen.split(" ")[0])}
+             Fecha de Vencimineto: {modificarFechaDoc(formatDate(editedData.feVen.split(" ")[0]))}
               
             </p>
           </Modal>
