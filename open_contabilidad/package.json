@@ -18,6 +18,8 @@
     "@types/react-dom": "18.2.6",
     "autoprefixer": "10.4.14",
     "axios": "^1.5.0",
+    "jspdf": "^2.5.1",
+    "jspdf-autotable": "^3.7.1",
     "loadash": "^1.0.0",
     "marked": "^7.0.5",
     "next": "13.4.7",

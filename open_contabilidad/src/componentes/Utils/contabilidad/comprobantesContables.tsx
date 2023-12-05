@@ -5,7 +5,7 @@ import Select from '../Select';
 import DataTable from 'react-data-table-component';
 import { gridStyle } from '@/globals/tableStyles';
 import ContableButton from './contableButton';
-import { CheckIcon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon, ChevronLeftIcon, ChevronRightIcon, DocumentMinusIcon, DocumentPlusIcon, MagnifyingGlassIcon, PencilSquareIcon, PlusIcon } from '@heroicons/react/24/solid';
+import { FolderArrowDownIcon,CheckIcon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon, ChevronLeftIcon, ChevronRightIcon, DocumentMinusIcon, DocumentPlusIcon, MagnifyingGlassIcon, PencilSquareIcon, PlusIcon } from '@heroicons/react/24/solid';
 import axios from 'axios';
 import secureLocalStorage from 'react-secure-storage';
 import { API_CONTABILIDAD, SESSION_NAMES } from '@/variablesglobales';
@@ -23,6 +23,8 @@ import { formatNumberWithPoints } from "@/variablesglobales";
 import FlujosSelector from './flujoSeleccionador';
 import { Tooltip } from 'react-tooltip'
 import 'react-tooltip/dist/react-tooltip.css'
+import {jsPDF} from "jspdf"
+import 'jspdf-autotable'
 
 interface comprobantesContablesProps {
 }
@@ -41,7 +43,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
   const [foliosData, setFoliosData] = useState<any[]>([])
   const [lineasData, setLineasData] = useState<any[]>([])
   const [Items, setItemsData] = useState<any[]>([])
-  
+  const [empresas,setEmpresas]= useState([])
   const [ruts,setRut] = useState([])
   const [centros,setCentros] = useState([])
   const [editable, setEditable] = useState(false)
@@ -64,7 +66,80 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
   const [editarDoc, setEditarDoc] = useState(false)
   const [editarCpRef, setEditarCpRef] = useState(false)
 
+  const CreatePDF = () => {
+    var {empresa,periodo,mes} = getLocalStorageParams();
+    const doc = new jsPDF();
+    const empresaObjetivo= empresas.find(aux => aux.codigo===Number(empresa));
+    const nombreEmpresa=empresaObjetivo.nombre;
+    const RutSii= empresaObjetivo.rutusuariosii;
+    const DvSii= empresaObjetivo.dvusuariosii;
+    const SucuarsalSii=empresaObjetivo.nomsucsii;
+    doc.setFontSize(16);
+    doc.text(`EMPRESA ${nombreEmpresa}`,10,15);
+    doc.text(`RUT ${RutSii} - ${DvSii}`,10,20);
+    doc.text(`SUCURSAL ${SucuarsalSii}`,10,25);
+    const columnsFolio=['Tipo','NºFolio','Fecha','Fecha Vencimiento']
+    const aux=[tipo,folio,folioValues.fecha,folioValues.vencim];
+    const rowFolio=[aux];
+    console.log(folioValues)
+    const styles = {
+      fillColor: false, // Desactivar el color de fondo de las celdas
+      lineColor: [0, 0, 0],
+      lineWidth: 0.3    // Configurar el tamaño del borde 
+    };
+    const stylesLineas = {
+      lineColor: [0, 0, 0],
+      lineWidth: 0.3    
+    };
 
+    doc.autoTable({
+      startY : 36,
+      head: [columnsFolio],
+      body: rowFolio,
+      theme:'plain',
+      styles: styles
+    })
+    const columnsFolio2=['Rut','Nombre','Valor','Banco']
+    const aux2=[`${folioValues.rut}-${folioValues.dv}`,folioValues.nombre,folioValues.valor,folioValues.banco];
+    const rowFolio2=[aux2];
+
+    doc.autoTable({
+      startY : 51,
+      head: [columnsFolio2],
+      body: rowFolio2,
+      theme:'plain',
+      styles: styles
+    })
+    const columnsFolio3 = ['Nº Documento','Glosa']
+    const aux3=[folioValues.noDoc,folioValues.glosa];
+    const rowFolio3=[aux3];
+
+    doc.autoTable({
+      startY : 66,
+      head: [columnsFolio3],
+      body: rowFolio3,
+      theme:'plain',
+      styles: styles
+    })
+    const columsLineas =['Cuenta','Centro','Item','Rut','NºDoc','Glosa','Debe','Haber','Flujo']
+    const lineasfolio= lineasData.map(linea => {
+      return [linea.cuenta,linea.obra,linea.item,linea.auxiliar,linea.noDoc,linea.glosa,linea.debe,linea.haber,linea.flujo]
+
+    });
+    doc.autoTable({
+      startY : 100,
+      head: [columsLineas],
+      body: lineasfolio,
+      theme:'plain',
+      styles:stylesLineas,
+      headStyles:{fillColor: [200, 220, 255]},
+    })
+
+
+    //Guardar y descargar el documento
+    doc.save(`Comprobante_Contable_Folio_${folio}`);
+
+  }
 
   const formatDate = (dateString:any) => {
     const originalDate = new Date(dateString);
@@ -149,6 +224,15 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
     .then((response) => {
       setRut(response.data);
     })
+    .catch((err) => {
+      
+    });
+
+    axios
+    .get(API_CONTABILIDAD + "/Empresas/", { headers: getHeaders() })
+    .then((response) => {
+      setEmpresas(response.data);
+    })  
     .catch((err) => {
       
     });
@@ -343,7 +427,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
         return (
           <div>
             <button
-              className="center text-white w-12 h-8 bg-slate-500 dark:bg-gray-500 dark:text-white focus:ring-4 focus:outline-none my-3 rounded-lg px-2 py-2.5 text-center "
+              className="center text-white w-14 h-8 bg-slate-500 dark:bg-gray-500 dark:text-white focus:ring-4 focus:outline-none my-1 rounded-lg px-1 py-2 text-center "
               data-tooltip-content="Información acerca del documento" data-tooltip-id='tooltipDoc' onClick={() => {handleInfoDoc(row.referencia)}}
             >
               {row.noDoc}
@@ -1066,6 +1150,10 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
                 <ContableButton tooltipText='Guardar folio' onClick={handleSaveFolio} disabled={!editable}>
                   <CheckIcon className='w-8 h-4'/>
                 </ContableButton>
+
+                <ContableButton tooltipText='Guardar comprobante como pdf' onClick={CreatePDF} >
+                  <FolderArrowDownIcon className='w-8 h-4'/>
+                </ContableButton>
               </div>
 
             </div>
@@ -1500,6 +1588,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
               setEditedData((prevData) => {
                 const updatedData = { ...prevData };
                 updatedData["auxiliar"] = selected.codigo;
+                updatedData["dv"] = selected.dv;
                 updatedData["auxiliar_nombre"] = selected.nombre
                 return updatedData;
               });

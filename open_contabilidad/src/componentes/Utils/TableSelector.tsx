@@ -20,9 +20,11 @@ const TableSelector: React.FC<TableSelectorProps> = ({ data, columns, title, onS
         // Handle the 'Rut' column separately
         const concatenatedRut = `${row.codigo}-${row.dv}`;
         return concatenatedRut.toLowerCase().includes(searchText.toLowerCase());
+      }else{
+        const nombre=row.nombre;
+        return nombre.toString().toLowerCase().includes(searchText.toLowerCase());
       }
       // Handle other columns
-      return value && value.toString().toLowerCase().includes(searchText.toLowerCase());
     });
   });
 
