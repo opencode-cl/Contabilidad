@@ -24,7 +24,6 @@ export default function paramsConfiguracion(){
     const[year, setYear] = useState<number | undefined>(undefined);
     const[month, setMonth] = useState<number | undefined>(undefined);
 
-
     useEffect(() => {
         const fetchData = async () => {
             try {
@@ -76,6 +75,7 @@ export default function paramsConfiguracion(){
       const stringValue = secureLocalStorage.getItem(SESSION_NAMES.USER_NAME) as string; 
       const usuario= stringValue.replace(/^"(.*)"$/, '$1');
       const fechaActual = new Date();
+
       const registro={
           "equipo": "equipo web",
           "fecha": fechaActual,
@@ -113,9 +113,9 @@ export default function paramsConfiguracion(){
 
     return(
       <div>
-                      <div className="">
-                <h1 className="text-xl dark:text-white">Parámetros</h1>
-              </div>
+          <div className=" text-center">
+            <h1 className="text-xl dark:text-white">Establecer Empresa y Periodo</h1>
+          </div>
         <div className="px-80">
           <form onSubmit={handleSubmit}>
 

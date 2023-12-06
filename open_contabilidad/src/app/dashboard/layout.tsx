@@ -52,14 +52,15 @@ export default function DashboardLayout({
             </div>
           </div>
         </div>
-        
-            <div className="bg-white dark:bg-slate-800 shadow-md rounded-md mt-2 p-4">
+            <div className="bg-white w-full dark:bg-slate-800 shadow-md rounded-md mt-2 p-4">
               <LoginProvider>
                 <CompanyParams>
                   {children}
                 </CompanyParams>
               </LoginProvider>
-            </div> 
+            </div>
+      
+            
         </div>
         
       </section>

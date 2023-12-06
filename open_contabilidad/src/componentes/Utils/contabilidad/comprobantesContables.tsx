@@ -74,34 +74,36 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
     const RutSii= empresaObjetivo.rutusuariosii;
     const DvSii= empresaObjetivo.dvusuariosii;
     const SucuarsalSii=empresaObjetivo.nomsucsii;
-    doc.setFontSize(16);
-    doc.text(`EMPRESA ${nombreEmpresa}`,10,15);
+    doc.setFontSize(13);
+    doc.text(`${nombreEmpresa}`,10,15);
     doc.text(`RUT ${RutSii} - ${DvSii}`,10,20);
-    doc.text(`SUCURSAL ${SucuarsalSii}`,10,25);
-    const columnsFolio=['Tipo','NºFolio','Fecha','Fecha Vencimiento']
-    const aux=[tipo,folio,folioValues.fecha,folioValues.vencim];
-    const rowFolio=[aux];
-    console.log(folioValues)
+    let Conprobante;
+    if (tipo==="I") {
+      Conprobante="Ingreso"
+    }else if (tipo==="E") {
+      Conprobante="Engreso"      
+    }else {
+      Conprobante="Traspaso"      
+    }
+    
+    doc.text(`Fecha ${folioValues.fecha}`,150,20);
+
+    doc.setFontSize(15);
+    doc.text(`Comprobante de ${Conprobante} Nº ${folio}`,60,34);
+
     const styles = {
       fillColor: false, // Desactivar el color de fondo de las celdas
       lineColor: [0, 0, 0],
       lineWidth: 0.3    // Configurar el tamaño del borde 
     };
-    const stylesLineas = {
-      lineColor: [0, 0, 0],
-      lineWidth: 0.3    
-    };
 
-    doc.autoTable({
-      startY : 36,
-      head: [columnsFolio],
-      body: rowFolio,
-      theme:'plain',
-      styles: styles
-    })
-    const columnsFolio2=['Rut','Nombre','Valor','Banco']
-    const aux2=[`${folioValues.rut}-${folioValues.dv}`,folioValues.nombre,folioValues.valor,folioValues.banco];
+
+
+    const columnsFolio2=['Nombre','Rut']
+    const aux2=[folioValues.nombre,`${folioValues.rut}-${folioValues.dv}`,folioValues.valor,folioValues.banco];
     const rowFolio2=[aux2];
+
+    console.log(folioValues)
 
     doc.autoTable({
       startY : 51,
@@ -110,8 +112,24 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
       theme:'plain',
       styles: styles
     })
-    const columnsFolio3 = ['Nº Documento','Glosa']
-    const aux3=[folioValues.noDoc,folioValues.glosa];
+    if (tipo==="E") {
+      const columnsFolio=['Cuenta','Nº Documento','Valor']
+      const cuenta=(cuentasData.find(cuenta=> cuenta.codigo===folioValues.cuenta));
+      let nombre="" ;
+      if (cuenta!=undefined) nombre = cuenta.nombre;
+      const aux2=[`${folioValues.cuenta} ${nombre}`,folioValues.noDoc,folioValues.valor];
+      const rowFolio=[aux2];
+
+      doc.autoTable({
+        startY : 81,
+        head: [columnsFolio],
+        body: rowFolio,
+        theme:'plain',
+        styles: styles
+      })
+    }
+    const columnsFolio3 = ['Glosa']
+    const aux3=[folioValues.glosa];
     const rowFolio3=[aux3];
 
     doc.autoTable({
@@ -121,20 +139,88 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
       theme:'plain',
       styles: styles
     })
+    let total_debe=0;
+    let total_haber=0;
+
     const columsLineas =['Cuenta','Centro','Item','Rut','NºDoc','Glosa','Debe','Haber','Flujo']
     const lineasfolio= lineasData.map(linea => {
-      return [linea.cuenta,linea.obra,linea.item,linea.auxiliar,linea.noDoc,linea.glosa,linea.debe,linea.haber,linea.flujo]
+      const cuenta=(cuentasData.find(cuenta=> cuenta.codigo===linea.cuenta));
+      let nombre="" ;
+      total_haber=total_haber+linea.haber;
+      total_debe=total_debe+linea.debe;
+      if (cuenta!=undefined) nombre = cuenta.nombre;
+      return [linea.cuenta+" "+nombre,linea.obra,linea.item,linea.auxiliar,linea.noDoc,linea.glosa,linea.debe,linea.haber,linea.flujo]
 
     });
-    doc.autoTable({
-      startY : 100,
+
+    const stylesLineas = {
+      lineColor: [0, 0, 0],
+      lineWidth: 0.3    
+    };
+
+    const optionsLineas = {
+      startY: 105, // Puedes eliminar este startY
       head: [columsLineas],
       body: lineasfolio,
-      theme:'plain',
-      styles:stylesLineas,
-      headStyles:{fillColor: [200, 220, 255]},
-    })
+      theme: 'plain',
+      styles: stylesLineas,
+      headStyles: { fillColor: [200, 220, 255] },
+    };
 
+    doc.setFontSize(11);
+    
+    doc.autoTable(optionsLineas);
+
+    
+    doc.setPage(doc.getCurrentPageInfo().pageNumber)
+
+    console.log(doc.autoTable.previous.finalY) 
+    let height_linea=doc.autoTable.previous.finalY;
+    const pageHeight = doc.internal.pageSize.height;
+    console.log(pageHeight)
+    console.log("nksjdnfkjsdf")
+
+
+    if (height_linea+20 >= pageHeight) {
+      height_linea=10;
+      doc.addPage();
+    }
+
+    doc.setPage(doc.getCurrentPageInfo().pageNumber)
+    
+    doc.rect(15, height_linea+5, 180, 10);
+    doc.text(`Totales Iguales      ${total_debe} = ${total_haber}`,17,height_linea+10);
+
+    let height_firma=height_linea+10;
+    console.log(height_firma)
+    console.log(height_linea)
+    if (height_firma +60 >= pageHeight) {
+      height_firma=20;
+      doc.addPage();
+    }
+
+    height_firma=height_firma+30;
+
+    doc.setPage(doc.getCurrentPageInfo().pageNumber)
+
+    doc.line(15, height_firma, 55, height_firma);
+    doc.text(`CONTABILIDAD`,20,height_firma+5);
+
+    doc.line(60, height_firma, 100, height_firma);
+    doc.text(`FINANZAS`,70,height_firma+5);
+
+    doc.line(105, height_firma, 145, height_firma);
+    doc.text(`GERENCIA`,115,height_firma+5);
+
+    doc.line(155, height_firma, 195, height_firma);
+    doc.text(`HECHO/RECIBIDO POR`,155,height_firma+5);
+    
+    if (tipo==="E") {
+      doc.line(45, height_firma+25, 90, height_firma+25);
+      doc.text(`NOMBRE`,58,height_firma+30);
+      doc.line(115, height_firma+25, 155, height_firma+25);
+      doc.text(`RUT`,130,height_firma+30);
+    }
 
     //Guardar y descargar el documento
     doc.save(`Comprobante_Contable_Folio_${folio}`);
@@ -573,7 +659,6 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
         });
       }
     }else if (columnName === "obra"){
-      console.log("asdasd")
       selected = centros.find(centro => centro.codigo === Number(newValue));
     }else if (columnName === "item"){
       selected = Items.find(item => item.codigo === Number(newValue));
@@ -1024,12 +1109,9 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
             <div id="datos-contable" className='col-span-5 bg-white dark:bg-slate-800 p-3'>
                 <div className='flex items-end gap-2'>
                   
-                  <Select label='Número' name="numero" title='Número' onChange={(e:any) => setTipo(e.target.value)} options={tipoComprobantes} error={false} size='md'/>
+                  <Select label='Tipo de Comprobante' name="tipo" title='Tipo de Comprobante' onChange={(e:any) => setTipo(e.target.value)} options={tipoComprobantes} error={false} size='md'/>
                   <Input size='md' type="text" label="Número" onChange={(e:any) => setFolio(e.target.value)} value={folio} name='folio' placeholder='' />
                   
-                  <ContableButton onClick={handleSearch}>
-                    <MagnifyingGlassIcon className='w-4 h-4'/>
-                  </ContableButton>
 
                   <ContableButton tooltipText='Editar Folio' onClick={() => {
                    setEditable(!editable) 
@@ -1050,14 +1132,25 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
                     <input
                       type="date"
                       placeholder="2018-01-01"
-                      className="border rounded-sm shadow px-3 py-0.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                      className="border mr-8 rounded-sm shadow px-3 py-0.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                       name="fecha"
                       value={folioValues.fecha}
                       onChange={(e) => setFolioValues({...folioValues, fecha: e.target.value})} 
                       disabled={!editable}
                     />
-
                   </div>
+                  <ContableButton onClick={handleSearch}>
+                    <MagnifyingGlassIcon className='w-4 h-4'/>
+                  </ContableButton>
+
+                  <ContableButton tooltipText='Guardar folio' onClick={handleSaveFolio} disabled={!editable}>
+                    <CheckIcon className='w-8 h-4'/>
+                  </ContableButton>
+
+                  <ContableButton tooltipText='Guardar comprobante como pdf' onClick={CreatePDF} >
+                    <FolderArrowDownIcon className='w-8 h-4'/>    
+                  </ContableButton>
+
                 </div>
                 
                 <div className='flex gap-2'>
@@ -1117,6 +1210,8 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
                     disabled={!editable}
                   />
                   </div>
+
+                  
                   
                 </div>
             </div>
@@ -1147,13 +1242,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
                     <DocumentPlusIcon className='w-8 h-4'/>
                 </ContableButton>
 
-                <ContableButton tooltipText='Guardar folio' onClick={handleSaveFolio} disabled={!editable}>
-                  <CheckIcon className='w-8 h-4'/>
-                </ContableButton>
-
-                <ContableButton tooltipText='Guardar comprobante como pdf' onClick={CreatePDF} >
-                  <FolderArrowDownIcon className='w-8 h-4'/>
-                </ContableButton>
+                
               </div>
 
             </div>

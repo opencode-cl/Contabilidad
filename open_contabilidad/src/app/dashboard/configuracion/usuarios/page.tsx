@@ -158,14 +158,14 @@ export default function Usuarios(){
 
     return(
         <div>
-            <div className="flex pr-5">
+            <div className="flex pr-5 text-center">
               <h1 className="text-xl dark:text-white">Usuarios</h1>
               <button onClick={()=>{
-                setOption(CREATE_ACTION)
-                setEditModal(true)
-              }} className="py-2 px-2 bg-green-600 hover:bg-green-800 text-white rounded-full ml-auto">
-              <PlusIcon className="w-6 h-6"/>
-            </button>
+                  setOption(CREATE_ACTION)
+                  setEditModal(true)
+                }} className="py-2 px-2 bg-green-600 hover:bg-green-800 text-white rounded-full ml-auto">
+                <PlusIcon className="w-6 h-6"/>
+              </button>
             </div>
 
             <DataTable
