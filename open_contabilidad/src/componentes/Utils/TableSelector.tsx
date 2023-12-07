@@ -17,14 +17,12 @@ const TableSelector: React.FC<TableSelectorProps> = ({ data, columns, title, onS
   const filteredData = data.filter((row) => {
     return Object.entries(row).some(([key, value]) => {
       if (key === 'codigo') {
-        // Handle the 'Rut' column separately
         const concatenatedRut = `${row.codigo}-${row.dv}`;
         return concatenatedRut.toLowerCase().includes(searchText.toLowerCase());
       }else{
         const nombre=row.nombre;
         return nombre.toString().toLowerCase().includes(searchText.toLowerCase());
       }
-      // Handle other columns
     });
   });
 

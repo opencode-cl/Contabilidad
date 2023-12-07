@@ -5,7 +5,7 @@ import Select from '../Select';
 import DataTable from 'react-data-table-component';
 import { gridStyle } from '@/globals/tableStyles';
 import ContableButton from './contableButton';
-import { FolderArrowDownIcon,CheckIcon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon, ChevronLeftIcon, ChevronRightIcon, DocumentMinusIcon, DocumentPlusIcon, MagnifyingGlassIcon, PencilSquareIcon, PlusIcon } from '@heroicons/react/24/solid';
+import { FolderArrowDownIcon,CheckIcon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon, ChevronLeftIcon, ChevronRightIcon, DocumentMinusIcon, DocumentPlusIcon, MagnifyingGlassIcon, PencilSquareIcon, PlusIcon, PlayCircleIcon } from '@heroicons/react/24/solid';
 import axios from 'axios';
 import secureLocalStorage from 'react-secure-storage';
 import { API_CONTABILIDAD, SESSION_NAMES } from '@/variablesglobales';
@@ -25,6 +25,7 @@ import { Tooltip } from 'react-tooltip'
 import 'react-tooltip/dist/react-tooltip.css'
 import {jsPDF} from "jspdf"
 import 'jspdf-autotable'
+import FolioSelector from './folioSeleccionador';
 
 interface comprobantesContablesProps {
 }
@@ -42,6 +43,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
   const [folio, setFolio] = useState(0)
   const [foliosData, setFoliosData] = useState<any[]>([])
   const [lineasData, setLineasData] = useState<any[]>([])
+  const [lineasTotalData, setLineasTotalData] = useState<any[]>([])
   const [Items, setItemsData] = useState<any[]>([])
   const [empresas,setEmpresas]= useState([])
   const [ruts,setRut] = useState([])
@@ -59,6 +61,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
   const [isRutSelectorVisible, setRutSelector] = useState(false)
   const [isCentroSelectorVisible, setCentroSelector] = useState(false)
   const [isItemsSelectorVisible, setItemsSelector] = useState(false)
+  const [isFoliosSelectorVisible, setFoliosSelector] = useState(false)
   const [infoDoc, setInfoDoc] = useState(false)
   const [isRutSelectorFolioVisible, setRutFolioSelector] = useState(false)
   const [isCuentaSelectorFolioVisible, setCuentaFolioSelector] = useState(false)
@@ -860,12 +863,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
   }
 
   const handleSearch = () => {
-    /// Rellenar con una busqyeda de los numero de folio ?????
-    try {
-
-    } catch (error) {
-      console.error('Error in handleSearch:', error);
-    }
+    setFoliosSelector(true)
   }
 
   const handleCreateFolio = () =>{
@@ -1139,7 +1137,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
                       disabled={!editable}
                     />
                   </div>
-                  <ContableButton onClick={handleSearch}>
+                  <ContableButton onClick={handleSearch} disabled={!tipo}>
                     <MagnifyingGlassIcon className='w-4 h-4'/>
                   </ContableButton>
 
@@ -1237,18 +1235,19 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
 
               </div>
 
-              <div className="flex gap-1 ml-5 mt-12">
-                <ContableButton tooltipText='Agregar una nueva linea en el folio' onClick={handleAddLine} disabled={!editable}>
-                    <DocumentPlusIcon className='w-8 h-4'/>
-                </ContableButton>
-
-                
-              </div>
-
             </div>
         </div>
-
+        <div></div>
         <div id="tabla-contable" className='bg-white dark:bg-slate-800 dark:text-white'>
+          <div className='grid justify-end'>
+            <button
+            className="disabled:opacity-50 center mr-8 text-white  bg-green-400 dark:bg-gray-500 dark:text-white focus:ring-4 focus:outline-none font-medium mb-3 rounded-lg text-sm px-3 py-2.5 text-center "
+            disabled={!editable}
+            onClick={handleAddLine} 
+          >
+            <PlusIcon className='w-4 h-4'/>
+          </button>
+          </div>
           <div style={{ maxHeight: '500px', overflowY: 'auto' }}>
           <DataTable
             columns={TableComprobantesContablesColumns}
@@ -1492,7 +1491,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
                                 </div>
                                 
                             </div>
-                            <div className="flex justify-between h-20 justify-center mt-2  dark:text-white">
+                            <div className="flex justify-between h-20 mt-2  dark:text-white">
 																<button
 																		onClick={handleEditChange}
 																		className="text-white ml-16  w-auto h-10 bg-blue-500 hover:bg-blue-600 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-gray-600 dark:hover:bg-gray-800 dark:focus:ring-gray-800 "
@@ -1604,6 +1603,17 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
           </Modal>
         </section>
            
+        }
+        {isFoliosSelectorVisible && 
+          <FolioSelector 
+            folios = {foliosData}
+            lineas= {lineasData}
+            handleSelectWithReference={(selected:any) => {
+              setFolio(selected.numero)
+              setFoliosSelector(false)
+            }}
+            onClose={()=>setFoliosSelector(false)}
+          />
         }
         {isCuentaSelectorVisible && 
           <CuentaSelector 
