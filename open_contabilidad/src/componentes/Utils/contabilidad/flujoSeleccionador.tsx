@@ -15,6 +15,7 @@ const FlujosSelector: React.FC<ItemsSelectorProps> = ({ flujos, handleSelectWith
         { 
             id: 'codigo',
             name: 'Codigo',
+            sortable: true,
             width: '6rem',
             selector:(row) => row.codigo
         },

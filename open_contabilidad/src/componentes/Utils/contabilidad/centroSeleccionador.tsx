@@ -15,6 +15,7 @@ const CentroSelector: React.FC<CentroSelectorProps> = ({ centros, handleSelectWi
         { 
             id: 'codigo',
             name: 'Codigo',
+            sortable: true,
             width: '6rem',
             selector:(row) => row.codigo
         },

@@ -15,6 +15,7 @@ const CuentaSelector: React.FC<CuentaSelectorProps> = ({ cuentas, handleSelectWi
         { 
             id: 'cuenta',
             name: 'Cuenta',
+            sortable: true,
             width: '6rem',
             selector:(row) => row.codigo
         },

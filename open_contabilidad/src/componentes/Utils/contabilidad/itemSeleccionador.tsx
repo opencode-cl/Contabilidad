@@ -15,6 +15,7 @@ const ItemsSelector: React.FC<ItemsSelectorProps> = ({ items, handleSelectWithRe
         { 
             id: 'codigo',
             name: 'Codigo',
+            sortable: true,
             width: '6rem',
             selector:(row) => row.codigo
         },

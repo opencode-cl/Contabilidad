@@ -1,7 +1,9 @@
 import DataTable, {TableColumn} from 'react-data-table-component';
 import Modal from '../Modal';
 import { ArrowTopRightOnSquareIcon } from '@heroicons/react/24/solid';
+import secureLocalStorage from 'react-secure-storage';
 import React, { useContext, useState } from 'react';
+import { API_CONTABILIDAD, SESSION_NAMES } from '@/variablesglobales';
 import { ThemeContext } from '../../Providers/darkModeContext';
 interface ItemsSelectorProps {
     folios: any[],
@@ -16,7 +18,10 @@ const FolioSelector: React.FC<ItemsSelectorProps> = ({ folios,lineas, handleSele
     const { theme } = useContext(ThemeContext);
     const [searchText, setSearchText] = useState('');
     const [searchByLineas, setSearchByLineas] = useState(false);
-    
+    const periodo = String(secureLocalStorage.getItem(SESSION_NAMES.PERIODO_YEAR))!.replace(/"/g, '');
+    const mes = String(secureLocalStorage.getItem(SESSION_NAMES.PERIODO_MONTH))!.replace(/"/g, '');
+   
+
     const formatDate = (dateString:any) => {
         const originalDate = new Date(dateString);
         // Verificar si la conversión a Date fue exitosa
@@ -48,31 +53,41 @@ const FolioSelector: React.FC<ItemsSelectorProps> = ({ folios,lineas, handleSele
     const lineasColumns:TableColumn<any>[] = [
         { 
             id: 'numero',
-            name: 'Folio Numero',
-            width: '6rem',
+            name: 'Folio',
+            sortable: true,
+            width: '12%',
             selector:(row) => row.numero
         },
         { 
             id: 'cuenta',
             name: 'Cuenta',
-            width: '6rem',
+            sortable: true,
+            width: '14%',
             selector:(row) => row.cuenta
         },
         { 
-            id: 'nombre',
-            name: 'Nombre',
-            wrap:true,
-            selector:(row) => row.nombre
+            id: 'glosa',
+            name: 'Glosa',
+            width: '36s%',
+            selector:(row) => row.glosa
         },
         { 
-            id: 'fecha',
-            name: 'Fecha',
+            id: 'debe',
+            name: 'Debe',
+            width: '14%',
+
+            selector:(row) => Intl.NumberFormat("es-CL").format(row.debe)
+        },
+        { 
+            id: 'haber',
+            name: 'Haber',
+            width: '14%',
             wrap:true,
-            selector:(row) => row.fecha
+            selector:(row) => Intl.NumberFormat("es-CL").format(row.haber)
         },
         {
             name: 'Seleccionar',
-            width: '9rem',
+            width: '12%',
             center: true,
             cell: (row: any) =>
               !String(row.codigo).endsWith('00') && (
@@ -82,7 +97,7 @@ const FolioSelector: React.FC<ItemsSelectorProps> = ({ folios,lineas, handleSele
                     handleSelectWithReference(row);
                   }}
                 >
-                  <ArrowTopRightOnSquareIcon className="w-6 h-6" />
+                  <ArrowTopRightOnSquareIcon className="w-5 h-5" />
                 </button>
               ),
           }
@@ -91,31 +106,35 @@ const FolioSelector: React.FC<ItemsSelectorProps> = ({ folios,lineas, handleSele
     const flujosColumns:TableColumn<any>[] = [
         { 
             id: 'numero',
-            name: 'Numero',
-            width: '6rem',
+            name: 'Número',
+            sortable: true,
+            width: '14%',
             selector:(row) => row.numero
         },
         { 
             id: 'glosa',
             name: 'Glosa',
-            width: '23rem',
+            width: '40%',
             selector:(row) => row.glosa
         },
         { 
             id: 'fecha',
             name: 'Fecha',
+            sortable: true,
             wrap:true,
+            width: '16%',
             selector:(row) => modificarFechaDoc(formatDate(row.fecha))
         },
         { 
             id: 'valor',
             name: 'Valor',
+            width: '15%',
             wrap:true,
-            selector:(row) => row.valor
+            selector:(row) => Intl.NumberFormat("es-CL").format(row.valor)
         },
         {
             name: 'Seleccionar',
-            width: '9rem',
+            width: '15%',
             center: true,
             cell: (row: any) =>
                 (
@@ -125,7 +144,7 @@ const FolioSelector: React.FC<ItemsSelectorProps> = ({ folios,lineas, handleSele
                     handleSelectWithReference(row);
                   }}
                 >
-                  <ArrowTopRightOnSquareIcon className="w-6 h-6" />
+                  <ArrowTopRightOnSquareIcon className="w-5 h-5" />
                 </button>
               ),
           }
@@ -134,9 +153,8 @@ const FolioSelector: React.FC<ItemsSelectorProps> = ({ folios,lineas, handleSele
   
     const filteredData = data.filter((row) => {
       return Object.entries(row).some(([key, value]) => {
-        
           const glosa=row.glosa;
-          return glosa.toString().toLowerCase().includes(searchText.toLowerCase());
+          return glosa?.toString().toLowerCase().includes(searchText.toLowerCase());
         
       });
     });
@@ -149,27 +167,36 @@ const FolioSelector: React.FC<ItemsSelectorProps> = ({ folios,lineas, handleSele
       selectAllRowsItem: false,
       selectAllRowsItemText: 'All',
     };
-
+    
   return (
     <section>
-        <Modal type="info" title="Selector de folios" onClose={onClose}>
-            <div className="flex space-x-4 mb-4">
+        <Modal type="info" title={"Selector de folios del perido: "+ periodo+" y mes: "+mes } onClose={onClose}>
+            <div className="flex justify-center space-x-4 mb-2">
                 <button
-                    className={`py-2 px-4 ${
+                    className={`px-3 ${
                         !searchByLineas ? 'bg-blue-500 hover:bg-blue-700' : 'bg-gray-300 hover:bg-gray-400'
-                    } rounded-md p-2 text-white`}
+                    } rounded-md text-white`}
                     onClick={() => {setSearchByLineas(false); setData(folios)}}
                 >
-                    Buscar por Folios
+                    Folio
                 </button>
                 <button
-                    className={`py-2 px-4 ${
+                    className={`px-3 ${
                         searchByLineas ? 'bg-blue-500 hover:bg-blue-700' : 'bg-gray-300 hover:bg-gray-400'
-                    } rounded-md p-2 text-white`}
+                    } rounded-md text-white`}
                     onClick={() => {setSearchByLineas(true); setData(lineas)}}
                 >
-                    Buscar por Líneas
+                    Linea
                 </button>
+                <input
+                        type="text"
+                        placeholder="Buscar por Glosa..."
+                        value={searchText}
+                        onChange={(e) => setSearchText(e.target.value)}
+                        className="border w-full h-9 rounded-sm shadow px-3 py-0.5 mb-2 
+                        dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400
+                         dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                    />
             </div>
             <DataTable
                 columns={searchByLineas ? lineasColumns : flujosColumns}
@@ -177,16 +204,6 @@ const FolioSelector: React.FC<ItemsSelectorProps> = ({ folios,lineas, handleSele
                 pagination
                 theme={theme}
                 paginationComponentOptions={customPaginationComponentOptions}
-                subHeader
-                subHeaderComponent={
-                <input
-                    type="text"
-                    placeholder="Buscar por Glosa..."
-                    value={searchText}
-                    onChange={(e) => setSearchText(e.target.value)}
-                    className="border w-full rounded-sm shadow px-3 py-0.5 mb-2 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                />
-                }
             />
         </Modal>
     </section>
