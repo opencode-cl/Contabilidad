@@ -1512,16 +1512,36 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
                                       <label  className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
                                         Debe
                                       </label>
-                                      <input type="number" className="bg-gray-50 border text-end border-black text-gray-900 text-md rounded-lg focus:ring-primary-600 focus:border-primary-600  w-full p-1 mr-3 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 col-span-2 flex" 
-                                      value={Intl.NumberFormat("es-CL").format(editedData.debe)} disabled= {editedData.haber != 0} onChange={(e) => handleInputChange('debe', editedData.referencia, e.target.value)} />
+                                      <input
+                                        type="text"
+                                        className="bg-gray-50 border text-end border-black text-gray-900 text-md rounded-lg focus:ring-primary-600 focus:border-primary-600 w-full p-1 mr-3 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 col-span-2 flex"
+                                        value={editedData.debe !== 0 ? Intl.NumberFormat("es-CL").format(editedData.debe) : ''}
+                                        disabled={editedData.haber !== 0}
+                                        onChange={(e) => {
+                                          const inputValue = e.target.value.replace(/[^\d]/g, ''); // Elimina caracteres no numéricos
+                                          if (!isNaN(inputValue)) {
+                                            handleInputChange('debe', editedData.referencia, parseInt(inputValue, 10));
+                                          }
+                                        }}
+                                      />
                                   </div>
                                   
                                   <div className="col-span-2 sm:col-span-1 dark:text-white">
                                     <label  className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
                                       Haber
                                     </label>
-                                    <input type="number" className="bg-gray-50 border text-end border-black text-gray-900 text-md rounded-lg focus:ring-primary-600 focus:border-primary-600  w-full p-1 mr-3 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 col-span-2 flex" 
-                                    value={Intl.NumberFormat("es-CL").format(editedData.haber)} disabled= {editedData.debe != 0 } onChange={(e) => handleInputChange('haber', editedData.referencia, e.target.value)} />
+                                    <input
+                                        type="text"
+                                        className="bg-gray-50 border text-end border-black text-gray-900 text-md rounded-lg focus:ring-primary-600 focus:border-primary-600 w-full p-1 mr-3 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 col-span-2 flex"
+                                        value={editedData.haber !== 0 ? Intl.NumberFormat("es-CL").format(editedData.haber) : ''}
+                                        disabled={editedData.debe !== 0}
+                                        onChange={(e) => {
+                                          const inputValue = e.target.value.replace(/[^\d]/g, ''); // Elimina caracteres no numéricos
+                                          if (!isNaN(inputValue)) {
+                                            handleInputChange('haber', editedData.referencia, parseInt(inputValue, 10));
+                                          }
+                                        }}
+                                      />
                                     
                                   </div>
                                   
