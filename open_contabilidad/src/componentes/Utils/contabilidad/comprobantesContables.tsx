@@ -69,7 +69,6 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
   const [isCuentaSelectorFolioVisible, setCuentaFolioSelector] = useState(false)
   const [isFlujoSelectorVisible, setFlujoSelector] = useState(false)
   const [editarDoc, setEditarDoc] = useState(false)
-  const [editarCpRef, setEditarCpRef] = useState(false)
 
   const CreatePDF = () => {
     var {empresa,periodo,mes} = getLocalStorageParams();
@@ -79,9 +78,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
     const RutSii= empresaObjetivo.rutusuariosii;
     const DvSii= empresaObjetivo.dvusuariosii;
     const SucuarsalSii=empresaObjetivo.nomsucsii;
-    doc.setFontSize(13);
-    doc.text(`${nombreEmpresa}`,10,15);
-    doc.text(`RUT ${RutSii} - ${DvSii}`,10,20);
+
     let Conprobante;
     if (tipo==="I") {
       Conprobante="Ingreso"
@@ -90,59 +87,68 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
     }else {
       Conprobante="Traspaso"      
     }
-    
-    doc.text(`Fecha ${folioValues.fecha}`,150,20);
-
-    doc.setFontSize(15);
-    doc.text(`Comprobante de ${Conprobante} Nº ${folio}`,60,34);
-
     const styles = {
       fillColor: false, // Desactivar el color de fondo de las celdas
       lineColor: [0, 0, 0],
+      fontSize: 8,
       lineWidth: 0.3    // Configurar el tamaño del borde 
     };
-
-
 
     const columnsFolio2=['Nombre','Rut']
     const aux2=[folioValues.nombre,`${folioValues.rut}-${folioValues.dv}`,folioValues.valor,folioValues.banco];
     const rowFolio2=[aux2];
 
+    const columnsFolio=['Cuenta','Nº Documento','Valor']
+    const cuenta=(cuentasData.find(cuenta=> cuenta.codigo===folioValues.cuenta));
 
-    doc.autoTable({
-      startY : 51,
-      head: [columnsFolio2],
-      body: rowFolio2,
-      theme:'plain',
-      styles: styles
-    })
-    if (tipo==="E") {
-      const columnsFolio=['Cuenta','Nº Documento','Valor']
-      const cuenta=(cuentasData.find(cuenta=> cuenta.codigo===folioValues.cuenta));
-      let nombre="" ;
-      if (cuenta!=undefined) nombre = cuenta.nombre;
-      const aux2=[`${folioValues.cuenta} ${nombre}`,folioValues.noDoc,Intl.NumberFormat("es-CL").format(folioValues.valor)];
-      const rowFolio=[aux2];
 
-      doc.autoTable({
-        startY : 81,
-        head: [columnsFolio],
-        body: rowFolio,
-        theme:'plain',
-        styles: styles
-      })
-    }
     const columnsFolio3 = ['Glosa']
     const aux3=[folioValues.glosa];
     const rowFolio3=[aux3];
 
-    doc.autoTable({
-      startY : 66,
-      head: [columnsFolio3],
-      body: rowFolio3,
-      theme:'plain',
-      styles: styles
-    })
+    const addHeader = () => {
+      doc.setFontSize(13);
+      doc.text(`${nombreEmpresa}`,10,15);
+      doc.text(`RUT ${RutSii} - ${DvSii}`,10,20);
+
+      doc.text(`Fecha ${folioValues.fecha}`,150,20);
+
+      doc.setFontSize(15);
+      doc.text(`Comprobante de ${Conprobante} Nº ${folio}`,60,34);
+
+      doc.autoTable({
+        startY : 51,
+        head: [columnsFolio2],
+        body: rowFolio2,
+        theme:'plain',
+        styles: styles
+      })
+      if (tipo==="E") {
+        let nombre="" ;
+        if (cuenta!=undefined) nombre = cuenta.nombre;
+        const aux2=[`${folioValues.cuenta} ${nombre}`,folioValues.noDoc,Intl.NumberFormat("es-CL").format(folioValues.valor)];
+        const rowFolio=[aux2];
+
+        doc.autoTable({
+          startY : doc.autoTable.previous.finalY,
+          head: [columnsFolio],
+          body: rowFolio,
+          theme:'plain',
+          styles: styles
+        })
+      }
+      
+      doc.autoTable({
+        startY : doc.autoTable.previous.finalY,
+        head: [columnsFolio3],
+        body: rowFolio3,
+        theme:'plain',
+        styles: styles
+      })
+    };
+
+    addHeader();
+    
     let total_debe=0;
     let total_haber=0;
 
@@ -159,11 +165,13 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
 
     const stylesLineas = {
       lineColor: [0, 0, 0],
-      lineWidth: 0.3    
+      lineWidth: 0.3, 
+      fontSize: 7,
+      columnWidth: 'auto'
     };
 
     const optionsLineas = {
-      startY: 105, // Puedes eliminar este startY
+      startY: doc.autoTable.previous.finalY+30, // Puedes eliminar este startY
       head: [columsLineas],
       body: lineasfolio,
       theme: 'plain',
@@ -171,34 +179,65 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
       headStyles: { fillColor: [200, 220, 255] },
     };
 
-    doc.setFontSize(11);
+    doc.setFontSize(10);
     
-    doc.autoTable(optionsLineas);
+    const maxRowsPerPage = 16; 
 
+    const dividedData = [];
+    for (let i = 0; i < lineasfolio.length; i += maxRowsPerPage) {
+      dividedData.push(lineasfolio.slice(i, i + maxRowsPerPage));
+    }
     
+    dividedData.forEach((part, index) => {
+      if (index > 0) {
+        // Agrega nueva página y encabezado para páginas adicionales
+        doc.addPage();
+        addHeader();
+      }
+  
+      // Ajusta la posición startY solo para la primera parte
+      const startY = 95;
+      doc.autoTable({ ...optionsLineas, body: part, startY });
+
+    });
+
     doc.setPage(doc.getCurrentPageInfo().pageNumber)
 
-    let height_linea=doc.autoTable.previous.finalY;
+    let height_total=doc.autoTable.previous.finalY;
     const pageHeight = doc.internal.pageSize.height;
 
-    if (height_linea+20 >= pageHeight) {
-      height_linea=10;
+    console.log(height_total)
+
+    if (height_total<=230) {
+      height_total=230
+    }else{
+      height_total=height_total+10
+    }
+
+    console.log(pageHeight)
+    console.log(height_total)
+    
+    if (height_total+15 >= pageHeight) {
+      height_total=10;
       doc.addPage();
     }
 
     doc.setPage(doc.getCurrentPageInfo().pageNumber)
+    doc.setFontSize(8);
     
-    doc.rect(15, height_linea+5, 180, 10);
-    doc.text(`Totales Iguales      ${Intl.NumberFormat("es-CL").format(total_debe)} = ${Intl.NumberFormat("es-CL").format(total_haber)}`,17,height_linea+10);
+    doc.rect(15, height_total, 180, 6);
+    doc.text(`Totales Iguales `,17,height_total+5);
+    doc.text(`${Intl.NumberFormat("es-CL").format(total_debe)} = ${Intl.NumberFormat("es-CL").format(total_haber)}`,150,height_total+5);
 
-    let height_firma=height_linea+10;
-    if (height_firma +60 >= pageHeight) {
+
+    let height_firma=height_total+20;
+
+    if (height_firma +20>= pageHeight) {
       height_firma=20;
       doc.addPage();
     }
 
-    height_firma=height_firma+30;
-
+    doc.setFontSize(10);
     doc.setPage(doc.getCurrentPageInfo().pageNumber)
 
     doc.line(15, height_firma, 55, height_firma);
@@ -524,7 +563,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
           <div style={{ textAlign: 'right' }}>{row.auxiliar}</div>
         );
       },
-      width: '8%'
+      width: '9%'
 
     },
     {
@@ -557,30 +596,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
           row.glosa
         );
       },
-      width: '17%'
-    },
-    {
-      name: 'N° Ref',
-      selector: (row: any) => row.nroRef,
-      wrap: true,
-      cell: (row: any) => {
-        return (
-          row.nroRef
-
-        );
-      },
-      width: '6%'
-    },
-    {
-      name: 'CP',
-      selector: (row: any) => row.codigoCP,
-      wrap: true,
-      cell: (row: any) => {
-        return (
-          row.codigoCP
-        );
-      },
-      width: '5%'
+      width: '24%'
     },
     {
       name: 'Debe',
@@ -593,7 +609,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
           Intl.NumberFormat("es-CL").format(row.debe) 
         );
       },
-      width: '7%'
+      width: '11%'
 
     },
     {
@@ -607,19 +623,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
           Intl.NumberFormat("es-CL").format(row.haber) 
         );
       },
-      width: '7%'
-
-    },
-    {
-      name: 'Flujo',
-      selector: (row: any) => row.flujo,
-      wrap: true,
-      cell: (row: any) => {
-        return (
-          row.flujo
-        );
-      },
-      width: '5%'
+      width: '11%'
 
     },
     {
@@ -1320,7 +1324,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
                       <div className="relative bg-white rounded-lg shadow dark:bg-gray-700">
                         <div className="flex items-center justify-between p-2  border-b rounded-t dark:border-gray-600">
                           <h3 className="text-xl ml-4 font-semibold text-gray-900 dark:text-white">
-                            Editar ... Contable
+                            Editar Linea
                           </h3>
                           <button
                             type="button"
@@ -1343,13 +1347,21 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
                                       <div className=" justify-between w-full flex">
                                           
                                           <input
-                                              type="number"
-                                              className="bg-gray-50 border border-black p-2 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400
+                                              type="text"
+                                              className="bg-gray-50 border text-center border-black p-2 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400
                                               dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 
                                               text-gray-900 text-sm pl-4 rounded-lg w-1/4 focus:ring-primary-600
                                               focus:border-primary-600 flex-grow mr-5 "
                                               value={editedData.cuenta}
-                                              onChange={(e) => handleInputChange('cuenta', editedData.referencia, e.target.value)}
+                                              onFocus={evento => evento.target.select()}
+                                              
+                                              onChange={(e) => {
+                                                const inputValue = e.target.value
+                                                if (/^[0-9]*$/.test(inputValue)) {
+                                                  const truncatedValue = inputValue.slice(0, 4);
+                                                  handleInputChange('cuenta', editedData.referencia, Number(truncatedValue))
+                                                }}
+                                              }
                                           />
                                           <div className='bg-gray-50 border border-black p-2 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400
                                               dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 
@@ -1378,16 +1390,23 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
                                       <div className=" justify-between w-full flex">
                                         
                                         <input
-                                            type="number"
-                                            className={ "bg-gray-50 border p-2 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400"+
+                                            type="text"
+                                            className={ "bg-gray-50 border text-center p-2 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400"+
                                           "dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 "+
                                           "text-gray-900 text-sm pl-4 rounded-lg w-1/4 focus:ring-primary-600"+
                                             "focus:border-primary-600 flex-grow mr-5 "+ (editedData.cuentaObject?.centro !== "S" ? " border-gray-300 opacity-2 text-slate-500" : "border-black")}
                                             value={editedData.obra} 
-                                            onChange={(e) => handleInputChange('obra', editedData.referencia, e.target.value)} 
+                                            onFocus={evento => evento.target.select()}
+                                            onChange={(e) => {
+                                              const inputValue = e.target.value
+                                              if (/^[0-9]*$/.test(inputValue)) {
+                                                const truncatedValue = inputValue.slice(0, 4);
+                                                handleInputChange('obra', editedData.referencia, Number(truncatedValue))
+                                              }}
+                                            } 
                                             disabled= {editedData.cuentaObject?.centro != "S"}
                                         />
-                                        <div className={"bg-gray-50 border p-2 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400"+
+                                        <div className={"bg-gray-50 border text-center p-2 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400"+
                                             "dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 "+
                                             "text-gray-900 text-sm rounded-lg w-3/4 focus:ring-primary-600"+
                                             "focus:border-primary-600 " + (editedData.cuentaObject?.centro !== "S" ? " border-gray-300 opacity-2 text-slate-500" : "border-black")}>
@@ -1412,13 +1431,20 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
                                   <div className='flex'>
                                     <div className=" justify-between w-full flex">
                                         <input
-                                            type="number"
-                                            className={ "bg-gray-50 border p-2 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400"+
+                                            type="text"
+                                            className={ "bg-gray-50 border text-center p-2 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400"+
                                           "dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 "+
                                           "text-gray-900 text-sm pl-4 rounded-lg w-1/4 focus:ring-primary-600"+
                                             "focus:border-primary-600 flex-grow mr-5 "+ (editedData.cuentaObject?.item !== "S" ? " border-gray-300 opacity-2 text-slate-500" : "border-black")}
                                             value={editedData.item} 
-                                            onChange={(e) => handleInputChange('item', editedData.referencia, e.target.value)}
+                                            onFocus={evento => evento.target.select()}
+                                            onChange={(e) => {
+                                              const inputValue = e.target.value
+                                              if (/^[0-9]*$/.test(inputValue)) {
+                                                const truncatedValue = inputValue.slice(0, 4);
+                                                handleInputChange('item', editedData.referencia, Number(truncatedValue))
+                                              }}
+                                            }
                                             disabled= {editedData.cuentaObject?.item != "S"}
                                         />
                                         <div className={"bg-gray-50 border p-2 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400"+
@@ -1446,16 +1472,23 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
                                     <div className='flex'>
                                       <div className=" justify-between w-full flex">
                                         <input
-                                            type="number"
+                                            type="text"
                                             className={ "bg-gray-50 border p-2 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400"+
                                           "dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 "+
                                           "text-gray-900 text-sm pl-4 rounded-lg w-1/4 focus:ring-primary-600"+
                                             "focus:border-primary-600 flex-grow mr-5 "+ (editedData.cuentaObject?.rut !== "S" ? " border-gray-300 opacity-2 text-slate-500" : "border-black")}
                                             value={editedData.auxiliar} 
-                                            onChange={(e) => handleInputChange('auxiliar', editedData.referencia, e.target.value)}
+                                            onFocus={evento => evento.target.select()}
+                                            onChange={(e) => {
+                                              const inputValue = e.target.value
+                                              if (/^[0-9]*$/.test(inputValue)) {
+                                                const truncatedValue = inputValue.slice(0, 8);
+                                                handleInputChange('auxiliar', editedData.referencia, Number(truncatedValue))
+                                              }}
+                                            }
                                             disabled= {editedData.cuentaObject?.rut != "S"}
                                         />
-                                        <div className={"bg-gray-50 border p-2 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400"+
+                                        <div className={"bg-gray-50 border  p-2 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400"+
                                             "dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 "+
                                             "text-gray-900 text-sm rounded-lg w-3/4 focus:ring-primary-600"+
                                             "focus:border-primary-600 " + (editedData.cuentaObject?.rut!== "S" ? " border-gray-300 opacity-2 text-slate-500" : "border-black")}>
@@ -1474,33 +1507,70 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
                                 </div>     
                                 
                               </div>
-                              <div className="grid grid-cols-2  gap-4 m-3 ">
-                                  <div className="col-span-2 sm:col-span-1 dark:text-white">
-                                    <label  className="mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                                      Número Documento
-                                    </label>
-                                    <input type="number" className="bg-gray-50 border pl-4 border-black text-gray-900 text-md rounded-lg focus:ring-primary-600 focus:border-primary-600  w-full p-1 mr-3 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 col-span-2 flex" 
-                                    value={editedData.noDoc} 
-                                    onChange={(e) => handleInputChange('noDoc', editedData.referencia, (e.target.value))} />
-                                  </div>
-                                  <div className='flex justify-center'>
-                                    <div className=" mr-3 dark:text-white">
-                                      <label  className="block mb-2  text-sm font-medium text-gray-900 dark:text-white">
-                                        Tipo y Fechas Doc
+                              <div className="grid grid-cols-2 text-sm gap-4 m-3 ">
+                                  <div className='grid grid-cols-2'>
+                                    <div className="dark:text-white">
+                                      <label>
+                                        Número Documento
                                       </label>
-                                      <button data-tooltip-id="tooltipDoc" data-tooltip-content="Modificar el tipo y fechas del documento" className="bg-gray-200 w-full  rounded-md text-black"  onClick={()=>{
+                                      <input type="text" className="bg-gray-50 border mt-2 pl-4 border-black text-gray-900 text-md rounded-lg focus:ring-primary-600 focus:border-primary-600  w-full p-1 mr-3 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 col-span-2 flex" 
+                                      value={editedData.noDoc} 
+                                      onFocus={evento => evento.target.select()}
+                                      onChange={(e) => {
+                                        const inputValue = e.target.value
+                                        if (/^[0-9]*$/.test(inputValue)) {
+                                          const truncatedValue = inputValue.slice(0, 4);
+                                          handleInputChange('noDoc', editedData.referencia, Number(truncatedValue))
+                                        }}
+                                      } />
+                                    </div>
+                                    <div className="mt-7 mr-3 dark:text-white">
+                                      <button data-tooltip-id="tooltipDoc" data-tooltip-content="Modificar el tipo y fechas del documento" className="bg-gray-200 w-8 ml-6 rounded-md text-black"  onClick={()=>{
                                               setEditarDoc(true)
                                       }}>...</button>
                                         <Tooltip id="tooltipDoc" place="bottom" ></Tooltip>
-                                    </div>
-                                    <div className="ml-3 dark:text-white">
-                                      <label  className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                                        Cp / NºReferencia
-                                      </label>
-                                      <button data-tooltip-id="tooltipCpRef" data-tooltip-content="Modificar Cp y Nº de referencia" className="bg-gray-200 w-full rounded-md  text-black" onClick={()=>{
-                                        setEditarCpRef(true)
-                                      }}>...</button>
-                                      <Tooltip id="tooltipCpRef" place="bottom" ></Tooltip>
+                                    </div>     
+                                  </div>
+                                  <div className='flex justify-center'>
+                                    
+                                    <div className="grid grid-cols-2 gap-4 ml-3 dark:text-white">
+                                      
+                                      <div className=" dark:text-white">
+                                        <label  className="block mb-2  text-gray-900 dark:text-white">
+                                          N° Ref
+                                        </label>
+                                        <input type="text" 
+                                          className={"bg-gray-50 border pl-4 border-black text-gray-900 text-md rounded-lg focus:ring-primary-600 focus:border-primary-600  w-full p-1 mr-3 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 col-span-2 flex"}
+                                          value={editedData.nroRef} 
+                                          onFocus={evento => evento.target.select()}
+                                          onChange={(e) => {
+                                            const inputValue = e.target.value
+                                            if (/^[0-9]*$/.test(inputValue)) {
+                                              const truncatedValue = inputValue.slice(0, 4);
+                                              handleInputChange('nroRef', editedData.referencia, Number(truncatedValue))
+                                            }}
+                                          }
+                                          />
+                                        
+                                      </div>
+                                      <div className=" dark:text-white">
+                                        <label  className="block mb-2  text-gray-900 dark:text-white">
+                                          CP
+                                        </label>
+                                        <input type="text" 
+                                          className={"bg-gray-50 border pl-4 border-black text-gray-900 text-md rounded-lg focus:ring-primary-600 focus:border-primary-600  w-full p-1 mr-3 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 col-span-2 flex"}
+                                          value={editedData.codigoCP} 
+                                          onFocus={evento => evento.target.select()}
+                                          onChange={(e) => {
+                                            const inputValue = e.target.value
+                                            if (/^[0-9]*$/.test(inputValue)) {
+                                              const truncatedValue = inputValue.slice(0, 4);
+                                              handleInputChange('codigoCP', editedData.referencia, Number(truncatedValue))
+                                            }}
+                                          }
+                                         />
+                                        
+                                      </div>
                                     </div>
                                   </div>
                                   
@@ -1517,6 +1587,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
                                         className="bg-gray-50 border text-end border-black text-gray-900 text-md rounded-lg focus:ring-primary-600 focus:border-primary-600 w-full p-1 mr-3 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 col-span-2 flex"
                                         value={editedData.debe !== 0 ? Intl.NumberFormat("es-CL").format(editedData.debe) : ''}
                                         disabled={editedData.haber !== 0}
+                                        onFocus={evento => evento.target.select()}
                                         onChange={(e) => {
                                           const inputValue = e.target.value.replace(/[^\d]/g, ''); // Elimina caracteres no numéricos
                                           if (!isNaN(inputValue)) {
@@ -1535,6 +1606,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
                                         className="bg-gray-50 border text-end border-black text-gray-900 text-md rounded-lg focus:ring-primary-600 focus:border-primary-600 w-full p-1 mr-3 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 col-span-2 flex"
                                         value={editedData.haber !== 0 ? Intl.NumberFormat("es-CL").format(editedData.haber) : ''}
                                         disabled={editedData.debe !== 0}
+                                        onFocus={evento => evento.target.select()}
                                         onChange={(e) => {
                                           const inputValue = e.target.value.replace(/[^\d]/g, ''); // Elimina caracteres no numéricos
                                           if (!isNaN(inputValue)) {
@@ -1553,13 +1625,20 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
                                     <div className='flex'>
                                       <div className=" justify-between w-full flex">
                                         <input
-                                            type="number"
+                                            type="text"
                                             className={ "bg-gray-50 border border-black p-2 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400"+
                                           "dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 border-gray-300"+
                                           "text-gray-900 text-sm pl-4 rounded-lg w-1/4 focus:ring-primary-600"+
                                             "focus:border-primary-600 flex-grow mr-5 "}
                                             value={editedData.flujo} 
-                                            onChange={(e) => handleInputChange('flujo', editedData.referencia, e.target.value)}
+                                            onFocus={evento => evento.target.select()}
+                                            onChange={(e) => {
+                                              const inputValue = e.target.value
+                                              if (/^[0-9]*$/.test(inputValue)) {
+                                                const truncatedValue = inputValue.slice(0, 4);
+                                                handleInputChange('flujo', editedData.referencia, Number(truncatedValue))
+                                              }}
+                                            }
                                         />
                                         <div className={"bg-gray-50 border border-black p-2 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400"+
                                             "dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 border-gray-300"+
@@ -1613,36 +1692,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
           
           }
 
-        {editarCpRef &&        
-        <section>
-          <Modal type="info" title='Editar Cp y Nº de referencia' onClose={()=>setEditarCpRef(false)}>
-                              
-            <div className=" dark:text-white">
-              <label  className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                N° Ref
-              </label>
-              <input type="text" 
-                className={"bg-gray-50 border border-gray-300 text-gray-900 text-md rounded-lg focus:ring-primary-600 focus:border-primary-600  w-full p-1 mr-3 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 col-span-2 flex" + (editedData.cuentaObject?.nroRef !== "S" ? " opacity-25" : "")}
-                value={editedData.nroRef} 
-                onChange={(e) => handleInputChange('nroRef', editedData.referencia, e.target.value)}
-                disabled= {editedData.cuentaObject?.nroRef != "S"} />
-              
-            </div>
-            <div className=" dark:text-white">
-              <label  className="block mt-2 text-sm font-medium text-gray-900 dark:text-white">
-                CP
-              </label>
-              <input type="number" 
-                className={"bg-gray-50 border border-gray-300 text-gray-900 text-md rounded-lg focus:ring-primary-600 focus:border-primary-600  w-full p-1 mr-3 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 col-span-2 flex" + (editedData.cuentaObject?.codigocp !== "S" ? " opacity-25" : "")}
-                value={editedData.codigoCP} 
-                onChange={(e) => handleInputChange('codigoCP', editedData.referencia, e.target.value)}
-                disabled= {editedData.cuentaObject?.codigocp != "S"} />
-              
-            </div>
-
-          </Modal>
-        </section>
-        }
+        
         {  editarDoc &&
           <section>
             <Modal type="info" title='Editar Fechas y el tipo de documento' onClose={()=>setEditarDoc(false)}>
