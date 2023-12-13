@@ -50,6 +50,7 @@ const Input: FC<InputProps> = ({
         id={name}
         value={value}
         name={name}
+        onFocus={evento => evento.target.select()}
         placeholder={placeholder}
         onChange={onChange}
         disabled={disabled}

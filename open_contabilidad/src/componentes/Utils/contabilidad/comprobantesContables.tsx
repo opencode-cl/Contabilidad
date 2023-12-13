@@ -28,6 +28,8 @@ import 'jspdf-autotable'
 import FolioSelector from './folioSeleccionador';
 import Image from 'next/image';
 import disk from "../../../public/images/disk.svg"
+import impresora from "../../../public/images/impresora.svg"
+
 
 interface comprobantesContablesProps {
 }
@@ -227,7 +229,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
     
     doc.rect(15, height_total, 180, 6);
     doc.text(`Totales Iguales `,17,height_total+5);
-    doc.text(`${Intl.NumberFormat("es-CL").format(total_debe)} = ${Intl.NumberFormat("es-CL").format(total_haber)}`,150,height_total+5);
+    doc.text(`${Intl.NumberFormat("es-CL").format(total_debe)} = ${Intl.NumberFormat("es-CL").format(total_haber)}`,167,height_total+5);
 
 
     let height_firma=height_total+20;
@@ -567,13 +569,13 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
 
     },
     {
-      name: 'Nª Doc',
+      name: 'Nº Doc',
       selector: (row: any) => row.noDoc,
       cell: (row: any) => {
         return (
           <div>
             <button
-              className="center text-white w-14 h-8 bg-slate-500 dark:bg-gray-500 dark:text-white focus:ring-4 focus:outline-none my-1 rounded-lg px-1 py-2 text-center "
+              className="center text-white w-14 h-6 bg-slate-500 dark:bg-gray-500 dark:text-white focus:ring-4 focus:outline-none rounded-lg px-1 py-1 text-center "
               data-tooltip-content="Información acerca del documento" data-tooltip-id='tooltipDoc' onClick={() => {handleInfoDoc(row.referencia)}}
             >
               {row.noDoc}
@@ -1127,7 +1129,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
 
         <div className='grid grid-cols-6 gap-4 mb-2'>
             <div id="datos-contable" className='col-span-5 bg-white dark:bg-slate-800 p-3'>
-                <div className='flex items-end gap-2'>
+                <div className='flex mb-1 items-end gap-2'>
                   
                   <Select label='Tipo de Comprobante' name="tipo" title='Tipo de Comprobante' onChange={(e:any) => setTipo(e.target.value)} options={tipoComprobantes} error={false} size='md'/>
                   <Input className='w-full' size='md' type="text" label="Número" onChange={(e:any) => setFolio(e.target.value)} value={folio} name='folio' placeholder='' />
@@ -1159,7 +1161,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
                       disabled={!editable}
                     />
                   </div>
-                  <ContableButton onClick={handleSearch} disabled={!tipo}>
+                  <ContableButton tooltipText='Buscar Folio por Glosa' onClick={handleSearch} disabled={!tipo}>
                     <MagnifyingGlassIcon className='w-4 h-4'/>
                   </ContableButton>
 
@@ -1173,7 +1175,12 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
                   </ContableButton>
 
                   <ContableButton tooltipText='Guardar comprobante como pdf' onClick={CreatePDF} >
-                    <FolderArrowDownIcon className='w-4 h-4'/>    
+                  <Image
+                      src={impresora}
+                      alt="Imprimir pdf"
+                      width={16} 
+                      height={16} 
+                    />   
                   </ContableButton>
 
                 </div>
@@ -1274,39 +1281,41 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
             <PlusIcon className='w-4 h-4'/>
           </button>
           </div>
-          <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+          <div style={{ maxHeight: '300px', overflowY: 'scroll'  }}>
             <DataTable
               columns={TableComprobantesContablesColumns}
               data={lineasData}
+              
               customStyles={gridStyle}
               dense
               className='border dark:border-slate-900'
               theme={theme}
             />
           </div>
-          <div className='mt-3'>
-          <table className='text-sm'>
-            <tr>
-              <td className=''>
-                <span>Totales Iguales</span>
-              </td>
+          <div className=' flex  mt-3'>
+            <div className=' w-2/5 '>
+              Totales Iguales
+            </div>
+            <div className='w-3/12'/>
+            <div className='flex w-1/5 ' >       
               {lineasData && 
-              <td className='border px-2'>
+              <div className='text-sm text-end w-full border px-2 '>
                 { 
                   lineasData.reduce((accumulator, currentObject) => {
                     return accumulator + Number(currentObject.debe);
                   }, 0).toLocaleString()
                 }
-              </td>}
-                <td className='border px-2'>
-                { 
-                  lineasData.reduce((accumulator, currentObject) => {
-                    return accumulator + Number(currentObject.haber);
-                  }, 0).toLocaleString()
-                }
-                </td> 
-            </tr>
-          </table>
+              </div>}
+              <div className='px-1'>=</div>
+              <div className='text-sm text-end w-full border px-2 '>
+              { 
+                lineasData.reduce((accumulator, currentObject) => {
+                  return accumulator + Number(currentObject.haber);
+                }, 0).toLocaleString()
+              }
+              </div> 
+            </div>
+            
           </div>
         </div>
         
@@ -1370,7 +1379,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
                                             {editedData.cuenta_nombre && <p className=" mr-8">{editedData.cuenta_nombre}</p>}
                                           </div>
                                           <button
-                                              className="bg-gray-200 p-2  ml-3 rounded-md text-black text-sm"
+                                              className=" bg-gray-400 dark:bg-gray-200 dark:text-black p-2  ml-3 rounded-md text-white text-sm"
                                               onClick={() => {
                                                   setCuentaSelector(true);
                                               }}
@@ -1414,7 +1423,8 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
                                         {editedData.obra_nombre && <p className=" mr-8">{editedData.obra_nombre}</p>}
 
                                         </div>
-                                        <button className="bg-gray-200 px-2 ml-3 rounded-md text-black text-sm" disabled= {editedData.cuentaObject?.centro != "S"} onClick={()=>{
+                                        <button className={"px-2 ml-3 rounded-md text-sm "+ (editedData.cuentaObject?.centro !== "S" ? " bg-gray-200 opacity-2 dark:bg-gray-500 dark:text-black text-slate-500 " : "bg-gray-400 dark:bg-gray-200 dark:text-black text-white border-black ")}
+                                         disabled= {editedData.cuentaObject?.centro != "S"} onClick={()=>{
                                           setCentroSelector(true)
                                         }}>...</button>
                                     </div>
@@ -1455,7 +1465,9 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
                                               {editedData.item_nombre && <p className="mr-8">{editedData.item_nombre}</p>}
 
                                         </div>
-                                        <button className="bg-gray-200 ml-3 rounded-md px-2 text-black" disabled= {editedData.cuentaObject?.item != "S"} onClick={()=>{
+                                        <button className={"px-2 ml-3 rounded-md text-sm "+ (editedData.cuentaObject?.item !== "S" ? " bg-gray-200 opacity-2 dark:bg-gray-500 dark:text-black text-slate-500 " : "bg-gray-400 dark:bg-gray-200 dark:text-black text-white border-black ")}
+                                         disabled= {editedData.cuentaObject?.item != "S"}
+                                         onClick={()=>{
                                         setItemsSelector(true)
                                       }}>...</button>
                                     </div>    
@@ -1496,7 +1508,9 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
                                               {editedData.auxiliar_nombre && <p className=" mr-8">{editedData.auxiliar_nombre}</p>}
 
                                         </div>
-                                        <button className="bg-gray-200 ml-3 rounded-md px-2 text-black " disabled= {editedData.cuentaObject?.rut != "S"} onClick={()=>{
+                                        <button className={"px-2 ml-3 rounded-md text-sm "+ (editedData.cuentaObject?.rut !== "S" ?" bg-gray-200 opacity-2 dark:bg-gray-500 dark:text-black text-slate-500 " : "bg-gray-400 dark:bg-gray-200 dark:text-black text-white border-black ")}
+                                         disabled= {editedData.cuentaObject?.rut != "S"}
+                                         onClick={()=>{
                                             setRutSelector(true)
                                           }}>...</button>
                                       </div>    
@@ -1507,72 +1521,70 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
                                 </div>     
                                 
                               </div>
-                              <div className="grid grid-cols-2 text-sm gap-4 m-3 ">
-                                  <div className='grid grid-cols-2'>
-                                    <div className="dark:text-white">
-                                      <label>
-                                        Número Documento
-                                      </label>
+                              <div className="flex justify-center text-sm gap-4 m-3 ">
+                                  
+                                  <div className="w-full dark:text-white">
+                                    <label>
+                                      Número Documento
+                                    </label>
+                                    <div className='flex flex-row'>
                                       <input type="text" className="bg-gray-50 border mt-2 pl-4 border-black text-gray-900 text-md rounded-lg focus:ring-primary-600 focus:border-primary-600  w-full p-1 mr-3 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 col-span-2 flex" 
-                                      value={editedData.noDoc} 
+                                        value={editedData.noDoc} 
+                                        onFocus={evento => evento.target.select()}
+                                        onChange={(e) => {
+                                          const inputValue = e.target.value
+                                          if (/^[0-9]*$/.test(inputValue)) {
+                                            const truncatedValue = inputValue.slice(0, 8);
+                                            handleInputChange('noDoc', editedData.referencia, Number(truncatedValue))
+                                          }}
+                                        } />
+                                        <div className="mr-3  dark:text-white">
+                                          <button data-tooltip-id="tooltipDoc" data-tooltip-content="Modificar el tipo y fechas del documento" className="bg-gray-400 dark:bg-gray-200 dark:text-black w-8 mt-2 h-5/6 rounded-md text-white"  onClick={()=>{
+                                                  setEditarDoc(true)
+                                          }}>...</button>
+                                            <Tooltip id="tooltipDoc" place="bottom" ></Tooltip>
+                                        </div>  
+                                    </div>
+                                  </div>          
+                                    
+                                  <div className="w-full dark:text-white">
+                                    <label  className="block mb-2  text-gray-900 dark:text-white">
+                                      N° Ref
+                                    </label>
+                                    <input type="text" 
+                                      className={"bg-gray-50 border pl-4 border-black text-gray-900 text-md rounded-lg focus:ring-primary-600 focus:border-primary-600  w-full p-1 mr-3 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 col-span-2 flex"}
+                                      value={editedData.nroRef} 
                                       onFocus={evento => evento.target.select()}
                                       onChange={(e) => {
                                         const inputValue = e.target.value
                                         if (/^[0-9]*$/.test(inputValue)) {
                                           const truncatedValue = inputValue.slice(0, 4);
-                                          handleInputChange('noDoc', editedData.referencia, Number(truncatedValue))
+                                          handleInputChange('nroRef', editedData.referencia, Number(truncatedValue))
                                         }}
-                                      } />
-                                    </div>
-                                    <div className="mt-7 mr-3 dark:text-white">
-                                      <button data-tooltip-id="tooltipDoc" data-tooltip-content="Modificar el tipo y fechas del documento" className="bg-gray-200 w-8 ml-6 rounded-md text-black"  onClick={()=>{
-                                              setEditarDoc(true)
-                                      }}>...</button>
-                                        <Tooltip id="tooltipDoc" place="bottom" ></Tooltip>
-                                    </div>     
-                                  </div>
-                                  <div className='flex justify-center'>
+                                      }
+                                      />
                                     
-                                    <div className="grid grid-cols-2 gap-4 ml-3 dark:text-white">
-                                      
-                                      <div className=" dark:text-white">
-                                        <label  className="block mb-2  text-gray-900 dark:text-white">
-                                          N° Ref
-                                        </label>
-                                        <input type="text" 
-                                          className={"bg-gray-50 border pl-4 border-black text-gray-900 text-md rounded-lg focus:ring-primary-600 focus:border-primary-600  w-full p-1 mr-3 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 col-span-2 flex"}
-                                          value={editedData.nroRef} 
-                                          onFocus={evento => evento.target.select()}
-                                          onChange={(e) => {
-                                            const inputValue = e.target.value
-                                            if (/^[0-9]*$/.test(inputValue)) {
-                                              const truncatedValue = inputValue.slice(0, 4);
-                                              handleInputChange('nroRef', editedData.referencia, Number(truncatedValue))
-                                            }}
-                                          }
-                                          />
-                                        
-                                      </div>
-                                      <div className=" dark:text-white">
-                                        <label  className="block mb-2  text-gray-900 dark:text-white">
-                                          CP
-                                        </label>
-                                        <input type="text" 
-                                          className={"bg-gray-50 border pl-4 border-black text-gray-900 text-md rounded-lg focus:ring-primary-600 focus:border-primary-600  w-full p-1 mr-3 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 col-span-2 flex"}
-                                          value={editedData.codigoCP} 
-                                          onFocus={evento => evento.target.select()}
-                                          onChange={(e) => {
-                                            const inputValue = e.target.value
-                                            if (/^[0-9]*$/.test(inputValue)) {
-                                              const truncatedValue = inputValue.slice(0, 4);
-                                              handleInputChange('codigoCP', editedData.referencia, Number(truncatedValue))
-                                            }}
-                                          }
-                                         />
-                                        
-                                      </div>
-                                    </div>
                                   </div>
+                                  <div className=" w-full dark:text-white">
+                                    <label  className="block mb-2  text-gray-900 dark:text-white">
+                                      CP
+                                    </label>
+                                    <input type="text" 
+                                      className={"bg-gray-50 border pl-4 border-black text-gray-900 text-md rounded-lg focus:ring-primary-600 focus:border-primary-600  w-full p-1 mr-3 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 col-span-2 flex"}
+                                      value={editedData.codigoCP} 
+                                      onFocus={evento => evento.target.select()}
+                                      onChange={(e) => {
+                                        const inputValue = e.target.value
+                                        if (/^[0-9]*$/.test(inputValue)) {
+                                          const truncatedValue = inputValue.slice(0, 4);
+                                          handleInputChange('codigoCP', editedData.referencia, Number(truncatedValue))
+                                        }}
+                                      }
+                                      />
+                                    
+                                  </div>
+                                    
+                                  
                                   
                               </div>
                               
@@ -1649,7 +1661,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
 
                                         </div>
                                         <button
-                                          className="bg-gray-200 px-2 ml-3 rounded-md text-black text-sm"
+                                          className="bg-gray-400 dark:bg-gray-200 dark:text-black px-2 ml-3 rounded-md text-white text-sm"
                                           onClick={() => {
                                               setFlujoSelector(true);
                                           }}>
@@ -1667,6 +1679,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
                                   </label>
                                   <input type="text" className="bg-gray-50 px-4 border border-black text-gray-900 text-md rounded-lg focus:ring-primary-600 focus:border-primary-600  w-full p-1 mr-3 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 col-span-2 flex" 
                                   value={editedData.glosa}
+                                  onFocus={evento => evento.target.select()}
                                   onChange={(e) => handleInputChange('glosa', editedData.referencia, e.target.value)} />
                                   
                                 </div>
@@ -1695,15 +1708,34 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
         
         {  editarDoc &&
           <section>
-            <Modal type="info" title='Editar Fechas y el tipo de documento' onClose={()=>setEditarDoc(false)}>
-              <div className=" mb-2  dark:text-white">
-                <label  className="block mb-1 text-sm font-medium text-gray-900 dark:text-white">
-                  TD
-                </label>
-                <input type="number" 
-                className="bg-gray-50 border border-gray-300 text-gray-900 text-md rounded-lg focus:ring-primary-600 focus:border-primary-600  w-full p-1 mr-3 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 col-span-2 flex" 
-                value={editedData.td} onChange={(e) => handleInputChange('td', editedData.referencia, e.target.value)} />
+            <Modal width='w-2/5 ' type="info" title='Fechas y el tipo de documento' onClose={()=>setEditarDoc(false)}>
+              <div className='grid grid-cols-2 gap-5'>
+                <div className=" mb-2  dark:text-white">
+                  <label className="block mb-1 text-sm font-medium text-gray-900 dark:text-white">
+                    Número Documento
+                  </label>
+                                      
+                  <input type="text" className="bg-gray-50 border border-gray-300 text-gray-900 text-md rounded-lg focus:ring-primary-600 focus:border-primary-600  w-full p-1 mr-3 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 col-span-2 flex" 
+                    value={editedData.noDoc} 
+                    onFocus={evento => evento.target.select()}
+                    onChange={(e) => {
+                      const inputValue = e.target.value
+                      if (/^[0-9]*$/.test(inputValue)) {
+                        const truncatedValue = inputValue.slice(0, 8);
+                        handleInputChange('noDoc', editedData.referencia, Number(truncatedValue))
+                      }}
+                    } />
+                </div>
+                <div className=" mb-2  dark:text-white">
+                  <label  className="block mb-1 text-sm font-medium text-gray-900 dark:text-white">
+                    Tipo de Documento
+                  </label>
+                  <input type="number" 
+                  className="bg-gray-50 border border-gray-300 text-gray-900 text-md rounded-lg focus:ring-primary-600 focus:border-primary-600  w-full p-1 mr-3 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 col-span-2 flex" 
+                    value={editedData.td} onFocus={evento => evento.target.select()}
+                    onChange={(e) => handleInputChange('td', editedData.referencia, e.target.value)} />
 
+                </div>
               </div>
               
               <div  className="mb-2 dark:text-white">
