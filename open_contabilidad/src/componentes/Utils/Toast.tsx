@@ -4,7 +4,7 @@ import { InformationCircleIcon, XMarkIcon } from '@heroicons/react/24/solid';
 interface ToastProps {
   message: string;
   duration: number;
-  type: 'warning' | 'success' | 'info' | 'danger';
+  type: 'warning' | 'success' | 'info' | 'danger'| 'confirmation';
   onClose: () => void;
 }
 

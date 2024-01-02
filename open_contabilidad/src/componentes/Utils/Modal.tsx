@@ -29,7 +29,7 @@ const Modal: React.FC<ModalProps> = ({ children, onConfirm, title, onClose, widt
                 <span className="text-xl ml-4 dark:text-white mr-auto">{title}</span>
 
                 <button
-                  className="text-gray-500 mr-8 hover:text-gray-700"
+                  className="text-gray-500 dark:text-white mr-8 hover:text-gray-700"
                   onClick={onClose}
                 >
                   <XMarkIcon className="w-6 h-6" />

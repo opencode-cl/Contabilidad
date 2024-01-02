@@ -55,14 +55,14 @@ const FolioSelector: React.FC<ItemsSelectorProps> = ({ folios,lineas, handleSele
             id: 'numero',
             name: 'Folio',
             sortable: true,
-            width: '12%',
+            width: '11%',
             selector:(row) => row.numero
         },
         { 
             id: 'cuenta',
             name: 'Cuenta',
             sortable: true,
-            width: '14%',
+            width: '12%',
             selector:(row) => row.cuenta
         },
         { 
@@ -74,20 +74,20 @@ const FolioSelector: React.FC<ItemsSelectorProps> = ({ folios,lineas, handleSele
         { 
             id: 'debe',
             name: 'Debe',
-            width: '14%',
+            width: '15%',
 
             selector:(row) => Intl.NumberFormat("es-CL").format(row.debe)
         },
         { 
             id: 'haber',
             name: 'Haber',
-            width: '14%',
+            width: '15%',
             wrap:true,
             selector:(row) => Intl.NumberFormat("es-CL").format(row.haber)
         },
         {
             name: 'Seleccionar',
-            width: '12%',
+            width: '14%',
             center: true,
             cell: (row: any) =>
               !String(row.codigo).endsWith('00') && (
@@ -106,24 +106,24 @@ const FolioSelector: React.FC<ItemsSelectorProps> = ({ folios,lineas, handleSele
     const flujosColumns:TableColumn<any>[] = [
         { 
             id: 'numero',
-            name: 'Número',
+            name: 'Nº',
             sortable: true,
-            width: '14%',
+            width: '11%',
             selector:(row) => row.numero
+        },
+        { 
+          id: 'fecha',
+          name: 'Fecha',
+          sortable: true,
+          wrap:true,
+          width: '15%',
+          selector:(row) => modificarFechaDoc(formatDate(row.fecha))
         },
         { 
             id: 'glosa',
             name: 'Glosa',
-            width: '40%',
+            width: '44%',
             selector:(row) => row.glosa
-        },
-        { 
-            id: 'fecha',
-            name: 'Fecha',
-            sortable: true,
-            wrap:true,
-            width: '16%',
-            selector:(row) => modificarFechaDoc(formatDate(row.fecha))
         },
         { 
             id: 'valor',
@@ -159,7 +159,19 @@ const FolioSelector: React.FC<ItemsSelectorProps> = ({ folios,lineas, handleSele
       });
     });
   
-  
+    const customStyles = {
+      rows: {
+        style: {
+          fontSize: '11px', // Ajusta el tamaño de la fuente según tus necesidades
+        },
+      },
+      headCells: {
+        style: {
+          fontSize: '14px', // Ajusta el tamaño de la fuente según tus necesidades
+        },
+      },
+    };
+
     const customPaginationComponentOptions = {
       rowsPerPageText: 'Filas por página:',
       rangeSeparatorText: 'de',
@@ -170,7 +182,7 @@ const FolioSelector: React.FC<ItemsSelectorProps> = ({ folios,lineas, handleSele
     
   return (
     <section>
-        <Modal type="info" title={"Selector de folios del perido: "+ periodo+" y mes: "+mes } onClose={onClose}>
+        <Modal width='w-3/5' type="info" title={"Selector de folios del perido: "+ periodo+" y mes: "+mes } onClose={onClose}>
             <div className="flex justify-center space-x-4 mb-2">
                 <button
                     className={`px-3 ${
@@ -203,6 +215,7 @@ const FolioSelector: React.FC<ItemsSelectorProps> = ({ folios,lineas, handleSele
                 data={filteredData}
                 pagination
                 theme={theme}
+                customStyles={customStyles}
                 paginationComponentOptions={customPaginationComponentOptions}
             />
         </Modal>

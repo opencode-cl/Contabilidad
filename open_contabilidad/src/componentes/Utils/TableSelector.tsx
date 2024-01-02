@@ -31,7 +31,6 @@ const TableSelector: React.FC<TableSelectorProps> = ({ data, columns, title, onS
     width: '9rem',
     center: true,
     cell: (row: any) =>
-      !String(row.codigo).endsWith('00') && (
         <button
           className="py-2 px-2 bg-blue-500 hover:bg-blue-700 rounded-md p-2 text-white"
           onClick={() => {
@@ -40,7 +39,6 @@ const TableSelector: React.FC<TableSelectorProps> = ({ data, columns, title, onS
         >
           <ArrowTopRightOnSquareIcon className="w-6 h-6" />
         </button>
-      ),
   });
 
   const customPaginationComponentOptions = {

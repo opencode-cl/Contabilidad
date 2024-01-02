@@ -2,8 +2,19 @@ export interface IToast{
     id: number,
     message:string,
     duration:number,
-    type: 'warning' | 'success' | 'info' | 'danger';
+    type: 'warning' | 'success' | 'info' | 'danger'| 'confirmation';
+    onConfirm?: () => void; 
 }
+
+export const confirmationToast = (message: string, onConfirm: () => void): IToast => {
+  return {
+    id: Date.now(),
+    message: message,
+    duration: 0, // Duración infinita o hasta que el usuario confirme/cancele
+    type: 'confirmation',
+    onConfirm: onConfirm, 
+  };
+};
 
 export const defaultSuccessToast: IToast = {
     id: Date.now(),
