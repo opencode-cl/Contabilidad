@@ -61,7 +61,17 @@ namespace apiPtoVtaWeb.Controllers
 
             return Ok(folio);
         }
+        [HttpGet("numero")]
+        public async Task<IActionResult> GetLastFolioNum(int empresa, int periodo, int mes, string tipo)
+        {
+            var num = await _repository.GetLastFolioNum(empresa, periodo, mes, tipo);
+            if (num == 0)
+            {
+                return NotFound();
+            }
 
+            return Ok(num);
+        }
         [HttpPost]
         public async Task<IActionResult> CreateFolio([FromBody] Folio folio)
         {

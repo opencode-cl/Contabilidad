@@ -16,6 +16,6 @@ namespace apiPtoVtaWeb.Data.Repositories.Interfaces
         Task<bool> DeleteFolio(int referencia);
         Task<bool> InsertFolioCompleto(FolioCompleto folio);
         Task<bool> UpdateFolioCompleto(FolioCompleto folio);
-
+        Task<int> GetLastFolioNum(int empresa, int periodo, int mes, string tipo);
     }
 }

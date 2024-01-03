@@ -16,7 +16,7 @@ namespace apiPtoVtaWeb.Model
         public int Cuenta { get; set; }
         public int NoDoc { get; set; }
         public int NoDocL { get; set; }
-        public string? Vencimiento { get; set; }
+        public string? Vencim { get; set; }
         public int Valor { get; set; }
         public int Cruzado { get; set; }
         public int AlPortador { get; set; }

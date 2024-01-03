@@ -18,12 +18,12 @@ namespace apiPtoVtaWeb.Controllers
             _repository = repository;
         }
 
-        //[HttpGet]
-        //public async Task<IActionResult> GetAllLineas()
-        //{
-          //  var lineas = await _repository.GetAllLineas();
-            //return Ok(lineas);
-        //}
+        [HttpGet]
+        public async Task<IActionResult> GetAllLineas()
+        {
+            var lineas = await _repository.GetAllLineas();
+            return Ok(lineas);
+        }
 
         [HttpGet("{referencia}")]
         public async Task<IActionResult> GetLinea(int referencia)
@@ -53,6 +53,18 @@ namespace apiPtoVtaWeb.Controllers
 
             var created = await _repository.InsertLinea(linea);
             return CreatedAtAction(nameof(GetLinea), new { referencia = linea.Referencia }, created);
+        }
+
+        [HttpGet("periodo")]
+        public async Task<IActionResult> GetLineasPeriodo(int empresa, int mes, int periodo, string tipo)
+        {
+            var lineas = await _repository.GetLineasPeriodo(empresa, mes, periodo, tipo);
+            if (lineas == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(lineas);
         }
 
         [HttpPut("{referencia}")]

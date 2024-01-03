@@ -8,6 +8,7 @@ namespace apiPtoVtaWeb.Data.Repositories.Interfaces
     {
         Task<IEnumerable<Linea>> GetAllLineas();
         Task<Linea> GetLineaDetails(int referencia);
+        Task<IEnumerable<Linea>> GetLineasPeriodo(int empresa, int mes, int periodo, string tipo);
         Task<IEnumerable<Linea>> GetLineasFolio(int numerofolio);
         Task<bool> InsertLinea(Linea linea);
         Task<bool> UpdateLinea(Linea linea);

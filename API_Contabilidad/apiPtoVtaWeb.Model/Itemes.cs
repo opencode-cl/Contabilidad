@@ -12,7 +12,7 @@ namespace apiPtoVtaWeb.Model
         public int Codigo { get; set; }
         public int Empresa { get; set; }
         public string? Nombre { get; set; }
-        public int Codpre {get; set;}
+        public string Codpre {get; set;}
         public int Codigomae {get; set;}
 
     }

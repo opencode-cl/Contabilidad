@@ -47,6 +47,20 @@ namespace apiPtoVtaWeb.Data.Repositories
             }
         }
 
+        public async Task<int> GetLastFolioNum(int empresa, int periodo, int mes, string tipo)
+        {
+            using (var db = _connectionManager.GetConnection())
+            {
+                var sql = @"SELECT Numero FROM folios 
+                    WHERE Empresa = @Empresa AND Tipo = @Tipo AND Periodo = @Periodo AND SUBSTRING(Numero, 1, LENGTH(Numero)-4) = @Mes
+                    ORDER BY Numero DESC 
+                    LIMIT 1";
+
+                return await db.QueryFirstOrDefaultAsync<int?>(sql, new { Empresa = empresa, Tipo = tipo, Periodo = periodo, Mes = mes }) ?? 0;
+            }
+        }
+
+
         public async Task<IEnumerable<Folio>> GetFoliosPeriodo(int empresa, int periodo, int mes, string tipo)
         {
             using (var db = _connectionManager.GetConnection())
@@ -84,59 +98,93 @@ namespace apiPtoVtaWeb.Data.Repositories
         }
 
         public async Task<bool> InsertFolioCompleto(FolioCompleto folio)
-        {   
-
-            var queryInsertFolio = @"INSERT INTO folios(periodo, empresa, numero, fecha, fechareg, glosa, nombre, rut, dv, tipo, usuario, vencim, valor, nodoc, debe, haber) 
-                            VALUES(@Periodo, @Empresa, @Numero, @Fecha, @FechaReg, @Glosa, @Nombre, @Rut, @DV, @Tipo, @Usuario, @Vencimiento, @Valor, @NoDoc, @Debe, @Haber)";
-
-            var queryInsertLinea = @"INSERT INTO lineas(periodo, empresa, tipo, numero, fecha, cuenta, obra, item, auxiliar, 
-                            td, nodoc, fedoc, feven, debe, haber, glosa, flujo, usuario, fechareg, referencia, dv, codigocp, nroref) 
-                            VALUES(@Periodo, @Empresa, @Tipo, @Numero, @Fecha, @Cuenta, @Obra, @Item, @Auxiliar, 
-                            @Td, @NoDoc, @FeDoc, @FeVen, @Debe, @Haber, @Glosa, @Flujo, @Usuario, @FechaReg, 
-                            @Referencia, @DV, @CodigoCP, @NroRef)";
-
-            using(var db = _connectionManager.GetConnection())
+        {
+            using (var db = _connectionManager.GetConnection())
             {
                 using (var transaction = db.BeginTransaction())
                 {
-                     Folio folioItem = folio.folio;
-                    var result = await db.ExecuteAsync(queryInsertFolio, new
+                    try
                     {
-                        Periodo = folioItem.Periodo,
-                        Empresa = folioItem.Empresa,
-                        Numero = folioItem.Numero,
-                        Fecha = folioItem.Fecha,
-                        FechaReg = folioItem.FechaReg,
-                        Glosa = folioItem.Glosa,
-                        Nombre = folioItem.Nombre,
-                        Rut = folioItem.Rut,
-                        DV = folioItem.DV,
-                        Tipo = folioItem.Tipo,
-                        Usuario = folioItem.Usuario,
-                        Vencimiento = folioItem.Vencimiento,
-                        Valor = folioItem.Valor,
-                        NoDoc = folioItem.NoDoc,
-                        Debe = folioItem.Debe,
-                        Haber = folioItem.Haber
-                    }, transaction: transaction);
+                        Folio folioItem = folio.folio;
 
-                    string fechaLinea = folioItem.Periodo + "-" + folioItem.FechaReg.Split("-")[1] + "-01";
-
-
-                    foreach (Linea linea in folio.lineas)
-                    {
-                        linea.Fecha = fechaLinea;
-                        if(linea.NroRef == null)
+                        // Verificar si la referencia es mayor a 0 para eliminar el folio existente
+                        if (folioItem.Referencia > 0)
                         {
-                            linea.NroRef = "";
+                            // Eliminar el folio existente
+                            var deleteFolioQuery = @"DELETE FROM folios WHERE Referencia = @Referencia";
+                            await db.ExecuteAsync(deleteFolioQuery, new
+                            {
+                                Referencia = folioItem.Referencia
+                            }, transaction: transaction);
+
+                            // Eliminar líneas asociadas al folio existente
+                            var deleteLineasQuery = @"DELETE FROM lineas WHERE Empresa = @Empresa AND Periodo = @Periodo AND Tipo = @Tipo AND Numero = @Numero";
+                            await db.ExecuteAsync(deleteLineasQuery, new
+                            {
+                                Empresa = folioItem.Empresa,
+                                Periodo = folioItem.Periodo,
+                                Tipo = folioItem.Tipo,
+                                Numero = folioItem.Numero
+                            }, transaction: transaction);
+                            
                         }
 
-                        var resultLinea = await db.ExecuteAsync(queryInsertLinea, linea, transaction: transaction);
+                        // Insertar el nuevo folio
+                        var insertFolioQuery = @"INSERT INTO folios(cuenta,periodo, empresa, numero, fecha, fechareg, glosa, nombre, rut, dv, tipo, usuario, vencim, valor, nodoc, debe, haber) 
+                        VALUES(@Cuenta,@Periodo, @Empresa, @Numero, @Fecha, @FechaReg, @Glosa, @Nombre, @Rut, @DV, @Tipo, @Usuario, @Vencim, @Valor, @NoDoc, @Debe, @Haber)";
+                        var result = await db.ExecuteAsync(insertFolioQuery, new
+                        {
+                            Periodo = folioItem.Periodo,
+                            Empresa = folioItem.Empresa,
+                            Numero = folioItem.Numero,
+                            Fecha = folioItem.Fecha,
+                            FechaReg = folioItem.FechaReg,
+                            Glosa = folioItem.Glosa,
+                            Nombre = folioItem.Nombre,
+                            Rut = folioItem.Rut,
+                            Cuenta = folioItem.Cuenta,
+                            DV = folioItem.DV,
+                            Tipo = folioItem.Tipo,
+                            Usuario = folioItem.Usuario,
+                            Vencim = folioItem.Vencim,
+                            Valor = folioItem.Valor,
+                            NoDoc = folioItem.NoDoc,
+                            Debe = folioItem.Debe,
+                            Haber = folioItem.Haber
+                        }, transaction: transaction);
+
+                        string fechaLinea = folioItem.Periodo + "-" + folioItem.FechaReg.Split("-")[1] + "-01";
+
+                        // Insertar nuevas líneas
+                        var insertLineaQuery = @"INSERT INTO lineas(periodo, empresa, tipo, numero, fecha, cuenta, obra, item, auxiliar, 
+                            td, nodoc, fedoc, feven, debe, haber, glosa, flujo, usuario, fechareg, referencia, codigocp, nroref) 
+                            VALUES(@Periodo, @Empresa, @Tipo, @Numero, @Fecha, @Cuenta, @Obra, @Item, @Auxiliar, 
+                            @Td, @NoDoc, @FeDoc, @FeVen, @Debe, @Haber, @Glosa, @Flujo, @Usuario, @FechaReg, 
+                            @Referencia, @CodigoCP, @NroRef)";
+
+                        foreach (Linea linea in folio.lineas)
+                        {
+                            linea.Fecha = fechaLinea;
+                            if (linea.NroRef == null)
+                            {
+                                linea.NroRef = "";
+                            }
+
+                            var resultLinea = await db.ExecuteAsync(insertLineaQuery, linea, transaction: transaction);
+                        }
+
+                        transaction.Commit();
+
+                        return result > 0;
                     }
-
-                    transaction.Commit();
-
-                    return result > 0;
+                    catch (Exception ex)
+                    {
+                        // Manejar la excepción y realizar un rollback
+                        transaction.Rollback();
+                        
+                        Console.WriteLine($"Error: {ex.Message}");
+                        throw; 
+                    }
                 }
             }
         }

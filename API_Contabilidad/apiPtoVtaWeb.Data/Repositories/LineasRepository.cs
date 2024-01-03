@@ -54,6 +54,16 @@ namespace apiPtoVtaWeb.Data.Repositories
             }
         }
 
+        public async Task<IEnumerable<Linea>> GetLineasPeriodo(int empresa, int mes, int periodo, string tipo)
+        {
+            using (var db = _connectionManager.GetConnection())
+            {
+                var sql = @"SELECT * FROM lineas WHERE empresa = @Empresa AND tipo = @Tipo 
+                            AND periodo = @Periodo AND SUBSTRING(numero, 1, LENGTH(numero)-4) = @Mes";
+                return await db.QueryAsync<Linea>(sql, new { Empresa = empresa,Mes = mes, Periodo = periodo, Tipo = tipo });
+            }
+        }
+
         public async Task<bool> InsertLinea(Linea linea)
         {
             using (var db = _connectionManager.GetConnection())
