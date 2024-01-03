@@ -143,7 +143,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
     usuario:"",
     fechareg:"",
     tipo:"",
-    referencia: newCount
+    referencia: 0
   }
   
   const [folioValues, setFolioValues] = useState(defaultFolioValues)
@@ -431,7 +431,6 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
               tipo: response.data[0].tipo,
               referencia: response.data[0].referencia
             })
-            setNewCount(response.data[0].referencia);
           }else{
             setFolio(0)
             setFoliosData([])
@@ -532,7 +531,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
 
     setEditable(false)
 
-  }, [folio,tipo])
+  }, [folio,tipo,actualizar])
 
   const getLastFolioNum = (): Promise<number> => {
     const { empresa, periodo, mes } = getLocalStorageParams();
@@ -728,17 +727,15 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
       if (selected!=undefined) {  
         setEditedData((prevData: any) => {
           const updatedData = { ...prevData };
-          updatedData["cuenta"] = newValue;
-          updatedData["cuenta_nombre"] = selected.nombre;
-          updatedData["cuentaObject"] = selected;
+          updatedData[columnName] = newValue;
+          updatedData[columnName+"_nombre"] = selected.nombre;
           return updatedData;
         });
       }else{  
         setEditedData((prevData: any) => {
           const updatedData = { ...prevData };
-          updatedData["cuenta"] = newValue;
-          updatedData["cuenta_nombre"] = "";
-          updatedData["cuentaObject"] = null;
+          updatedData[columnName] = newValue;
+          updatedData[columnName+"_nombre"] = "";
           return updatedData;
         });
       }
@@ -809,19 +806,22 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
       isValidData = false;
       return { isValidData, errors };
     }
-    if (editedData?.cuentaObject?.rut != "N") {
+
+    const cuentaObject = cuentasData.find((cuenta) => cuenta.codigo === Number(editedData?.cuenta))
+
+    if (cuentaObject?.rut != "N") {
       if ( !ruts.some((rut) => rut.codigo === Number(editedData?.auxiliar))) {
         errors.push("Rut,");
         isValidData = false;
       }
     }
-    if (editedData?.cuentaObject?.centro != "N") {
+    if (cuentaObject?.centro != "N") {
       if ( !centros.some((centro) => centro.codigo === Number(editedData?.obra))) {
         errors.push("Centro,");
         isValidData = false;
       }
     }
-    if (editedData?.cuentaObject?.item != "N") {
+    if (cuentaObject?.item != "N") {
       if ( !Items.some((item) => item.codigo === Number(editedData?.item))) {
         errors.push("Item,");
         isValidData = false;
@@ -945,7 +945,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
       const lastFolioNum = await getLastFolioNum();
   
       if (reversa === 0) {
-        setFolioValues({ ...folioValues, type: "new", fecha: obtenerFechaActual(), referencia: newCount, id: 0 });
+        setFolioValues({ ...folioValues, type: "new", fecha: obtenerFechaActual(), referencia: 0, id: 0 });
         setLineasData((prevLineasData) => {
           const updatedLineasData = prevLineasData.map((fila) => {
             const auxHaber = fila.haber;
@@ -961,7 +961,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
           return updatedLineasData;
         });
       } else {
-        setFolioValues({ ...folioValues, type: "new", fecha: obtenerFechaActual(), referencia: newCount, id: 0 });
+        setFolioValues({ ...folioValues, type: "new", fecha: obtenerFechaActual(), referencia: 0, id: 0 });
         console.log("cambio");
         setLineasData((prevLineasData) => {
           const updatedLineasData = prevLineasData.map((fila) => {
@@ -1013,7 +1013,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
             usuario: "",
             fechareg: "",
             tipo: "",
-            referencia: newCount,
+            referencia: 0,
           });
           setFolio(lastFolioNum);
           setLineasData([]);
@@ -1035,7 +1035,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
           usuario: "",
           fechareg: "",
           tipo: "",
-          referencia: newCount,
+          referencia: 0,
         });
   
         setFolio(lastFolioNum + 1);
@@ -1058,7 +1058,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
           usuario: "",
           fechareg: "",
           tipo: "",
-          referencia: newCount,
+          referencia: 0,
         });
       }
   
@@ -1120,7 +1120,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
         });
       }
   
-      
+      console.log(data)
     
       data = data.map(item => {
         if(item.type === "new"){
@@ -1279,7 +1279,6 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
             const sheet = workbook.Sheets[workbook.SheetNames[0]];
             const lines = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false });
             // Assuming your data starts from the second row (index 1)
-            
             const columns = lines.slice(1).map((row:any) => ({
                 cuenta: row[0] || 0,
                 obra: row[1] || 0,
@@ -1296,7 +1295,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
                 flujo: row[12] || 0,
                 glosa: row[13] || "",
                 type:"new",
-                referencia:newCount
+                referencia:0
             }));
 
             resolve(columns);
@@ -1337,25 +1336,33 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
       .then((columns) => {
         console.log(columns);
 
-        const nuevasLineas = columns.map((column:ILineas) => ({
-          cuenta: column.cuenta || 0,
-          feDoc: column.feDoc || "",
-          noDoc: column.noDoc || 0,
-          obra: column.obra || 0,
-          debe: column.debe || 0,
-          haber: column.haber || 0,
-          feVen: column.feVen || "",
-          item: column.item || 0,
-          auxiliar: column.auxiliar || 0,
-          td: column.td || 0,
-          codigoCP: column.codigoCP || 0,
-          flujo: column.flujo || 0,
-          type: "new",
-          referencia: newCount,
-          glosa: column.glosa || "",
-        }));
+        
         
         const {isValidData,errors} = validateLines(columns);
+        let count = 0;
+        const nuevasLineas = columns.map((column: ILineas) => {
+          count++;
+        
+          return {
+            cuenta: Number(column.cuenta) || 0,
+            feDoc: formatDate(column.feDoc) || "",
+            noDoc: Number(column.noDoc) || 0,
+            obra: Number(column.obra) || 0,
+            debe: Number(column.debe) || 0,
+            haber: Number(column.haber) || 0,
+            feVen: formatDate(column.feVen) || "",
+            item: Number(column.item) || 0,
+            auxiliar: Number(column.auxiliar) || 0,
+            td: Number(column.td) || 0,
+            codigoCP: Number(column.codigoCP) || 0,
+            flujo: Number(column.flujo) || 0,
+            type: "new",
+            referencia: newCount + count, 
+            glosa: column.glosa || "",
+          };
+        });
+        
+        setNewCount(newCount + 1); 
 
 
         if (isValidData) {
