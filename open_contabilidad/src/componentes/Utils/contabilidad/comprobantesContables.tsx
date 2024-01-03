@@ -164,7 +164,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
     if (tipo==="I") {
       Conprobante="Ingreso"
     }else if (tipo==="E") {
-      Conprobante="Engreso"      
+      Conprobante="Egreso"      
     }else {
       Conprobante="Traspaso"      
     }
@@ -176,7 +176,8 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
       let nombreHeader="" ;
       if (cuentaHeader!=undefined) nombreHeader = cuentaHeader.nombre;
       
-
+      doc.setFont('helvetica', 'normal');
+      
       doc.setFontSize(13);
       doc.text(`${nombreEmpresa}`,10,15);
       doc.text(`RUT ${RutSii} - ${DvSii}`,10,20);
@@ -194,7 +195,9 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
         
         doc.rect(15, 59, 180, 8);
         doc.text(`Cuenta: ${nombreHeader} `,17,64);
-        doc.text(`Nº Documento: ${folioValues.noDoc}`,115,64);
+        if (folioValues.noDoc!=0) {
+          doc.text(`Nº Documento: ${folioValues.noDoc}`,115,64);
+        }
         doc.text(`Valor: ${Intl.NumberFormat("es-CL").format(folioValues.valor)}`,155,64);
         doc.rect(15, 67, 180, 8);
         doc.text(`Glosa: ${folioValues.glosa}`,17,72);
@@ -215,29 +218,62 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
     let total_debe=0;
     let total_haber=0;
 
-    const columsLineas =['Cuenta','Centro','Item','Rut','NºDoc','Glosa','Debe','Haber','Flujo']
+    const columsLineas =['Cuenta','Centro','Item','Rut','NºDoc','Debe','Haber','Glosa']
     const lineasfolio= lineasData.map(linea => {
       const cuenta=(cuentasData.find(cuenta=> cuenta.codigo===linea.cuenta));
       let nombre="" ;
       total_haber=total_haber+linea.haber;
       total_debe=total_debe+linea.debe;
       if (cuenta!=undefined) nombre = cuenta.nombre;
-      return [linea.cuenta+" "+nombre,linea.obra,linea.item,linea.auxiliar,linea.noDoc,linea.glosa,Intl.NumberFormat("es-CL").format(linea.debe),Intl.NumberFormat("es-CL").format(linea.haber),linea.flujo]
+      let obra,item,auxiliar,noDoc;
+      if(linea.obra!=0){obra=linea.obra}
+      if(linea.item!=0){item=linea.item}
+      if(linea.noDoc!=0){noDoc=linea.noDoc}
+      if(linea.auxiliar!=0){auxiliar=linea.auxiliar}
+
+      return [linea.cuenta+" "+nombre,obra,item,auxiliar,noDoc,Intl.NumberFormat("es-CL").format(linea.debe),Intl.NumberFormat("es-CL").format(linea.haber),linea.glosa]
 
     });
 
-    const stylesLineas = {
-      fontSize: 7,
-      columnWidth: 'auto',
-    };
-
     const optionsLineas = {
-      startY: 85, 
-      head: [columsLineas],
+      
       body: lineasfolio,
       theme: 'striped',
-      styles: stylesLineas,
-      headStyles: {halign: 'center', textColor:0, fillColor: [235, 232, 249] },
+      styles: {
+        fontSize: 7,
+      },
+      columnStyles: {
+        0: { halign: 'left', cellWidth: 45 },
+        1: { halign: 'center', cellWidth: 13 },
+        2: { halign: 'center', cellWidth: 13 },
+        3: { halign: 'center', cellWidth: 16 },
+        4: { halign: 'center', cellWidth: 13 },
+        5: { halign: 'right', cellWidth: 20 },
+        6: { halign: 'right', cellWidth: 20 },
+        7: { halign: 'left', cellWidth: 45 },
+      },
+      headStyles: { 
+        textColor: 0, fillColor: [200, 200, 200],
+        
+       },
+       head: [columsLineas],
+       didParseCell: function (data:any) {
+        // Ajusta la alineación según la posición de la celda en la fila de encabezado
+        if (data.section === 'head' && data.row.index === 0) {
+          switch (data.cell.index) {
+            case 0:
+              data.cell.styles.halign = 'center';
+              break;
+            case 1:
+              data.cell.styles.halign = 'right';
+              break;
+            // Agrega más casos según sea necesario
+            default:
+              // Mantén la alineación predeterminada o ajusta según tus necesidades
+              break;
+          }
+        }
+      },
     };
 
     doc.setFontSize(10);
@@ -257,7 +293,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
       }
   
       // Ajusta la posición startY solo para la primera parte
-      const startY = 95;
+      const startY = 80;
       doc.autoTable({ ...optionsLineas, body: part, startY });
 
     });
@@ -283,11 +319,16 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
     doc.setPage(doc.getCurrentPageInfo().pageNumber)
     doc.setFontSize(8);
     
-    doc.rect(15, height_total, 180, 6);
-    doc.text(`Totales Iguales `,17,height_total+5);
-    doc.text(`${Intl.NumberFormat("es-CL").format(total_debe)} = ${Intl.NumberFormat("es-CL").format(total_haber)}`,150,height_total+5);
+    doc.setFillColor(200, 200, 200);
+    doc.rect(15, height_total, 180, 6, 'F'); // 'F' indica que se llene el rectángulo sin bordes
+    doc.setFont('helvetica', 'bold'); 
+    
+    doc.text(`Totales Iguales `,18,height_total+4);
+    doc.text(`${Intl.NumberFormat("es-CL").format(total_debe)} `,116,height_total+4);
+    doc.text(`=  ${Intl.NumberFormat("es-CL").format(total_haber)} `,135,height_total+4);
 
-
+    
+    doc.setFont('helvetica', 'normal');
     let height_firma=height_total+20;
 
     if (height_firma +20>= pageHeight) {
@@ -295,7 +336,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
       doc.addPage();
     }
 
-    doc.setFontSize(10);
+    doc.setFontSize(8);
     doc.setPage(doc.getCurrentPageInfo().pageNumber)
 
     doc.line(15, height_firma, 55, height_firma);
@@ -308,13 +349,13 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
     doc.text(`GERENCIA`,115,height_firma+5);
 
     doc.line(155, height_firma, 195, height_firma);
-    doc.text(`HECHO/RECIBIDO POR`,155,height_firma+5);
+    doc.text(`HECHO/RECIBIDO POR`,157,height_firma+5);
     
     if (tipo==="E") {
-      doc.line(45, height_firma+25, 90, height_firma+25);
-      doc.text(`NOMBRE`,58,height_firma+30);
-      doc.line(115, height_firma+25, 155, height_firma+25);
-      doc.text(`RUT`,130,height_firma+30);
+      doc.line(155, height_firma+17, 195, height_firma+17);
+      doc.text(`NOMBRE`,168,height_firma+21);
+      doc.line(155, height_firma+35, 195, height_firma+35);
+      doc.text(`RUT`,173,height_firma+39);
     }
 
     //Guardar y descargar el documento
@@ -661,7 +702,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
       cell: (row:any) => {
         return (
           <button
-          className={"disabled:opacity-50 center text-white bg-amber-400 dark:bg-gray-500 dark:text-white focus:ring-4 focus:outline-none font-medium my-3 rounded-lg text-sm px-2 py-2.5 text-center "}
+          className={"disabled:opacity-50 center text-white bg-amber-400 dark:bg-gray-500 dark:text-white focus:ring-4 focus:outline-none font-medium  rounded-lg text-sm p-1.5 text-center "}
           disabled={!editable}
           onClick={() => {handleToggleEdit(row.referencia)}}
         >
@@ -677,7 +718,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
       cell: (row:any) => {
         return (
           <button
-          className="disabled:opacity-50 center text-white  bg-red-400 dark:bg-gray-500 dark:text-white focus:ring-4 focus:outline-none font-medium my-3 rounded-lg text-sm px-3 py-2.5 text-center "
+          className="disabled:opacity-50 center text-white  bg-red-400 dark:bg-gray-500 dark:text-white focus:ring-4 focus:outline-none font-medium  rounded-lg text-sm p-1.5 text-center "
           disabled={!editable}
           onClick={() => {handleEraseLine(row.referencia)}}
         >
@@ -827,7 +868,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
         isValidData = false;
       }
     }
-    if ((editedData?.flujo != 0 || editedData?.flujo != null) && !flujosData.some((flujo) => flujo.codigo === Number(editedData?.flujo))) {
+    if ((editedData?.flujo != 0 ) && !flujosData.some((flujo) => flujo.codigo === Number(editedData?.flujo))) {
       errors.push("Flujo,");
       isValidData = false;
     }    
@@ -1625,14 +1666,14 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
         <div id="tabla-contable" className='bg-white dark:bg-slate-800 dark:text-white'>
           <div className='grid justify-end'>
             <button
-            className="disabled:opacity-50 center mr-8 text-white  bg-green-400 dark:bg-gray-500 dark:text-white focus:ring-4 focus:outline-none font-medium mb-1 rounded-lg text-sm px-3 py-2.5 text-center "
+            className="disabled:opacity-50 center mr-8 text-white  bg-green-400 dark:bg-gray-500 dark:text-white focus:ring-4 focus:outline-none p-3    rounded-full ml-auto "
             disabled={!editable}
             onClick={handleAddLine} 
           >
             <PlusIcon className='w-4 h-4'/>
           </button>
           </div>
-          <div style={{ maxHeight: '300px', overflowY: 'scroll'  }}>
+          <div style={{ maxHeight: '310px', overflowY: 'scroll'  }}>
             <DataTable
               columns={TableComprobantesContablesColumns}
               data={lineasData}
