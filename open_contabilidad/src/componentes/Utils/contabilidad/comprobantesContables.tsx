@@ -31,17 +31,39 @@ import disk from "../../../public/images/disk.svg"
 import impresora from "../../../public/images/impresora.svg"
 import reversa from "../../../public/images/reversa.svg"
 import copia from "../../../public/images/copia.svg"
+import excelLinea from "../../../public/images/excelLineas.svg"
 import { ICuenta } from '@/interfaces/ICuenta';
 import { IRut } from '@/interfaces/IRut';
 import { ICentroDeCosto } from '@/interfaces/ICentroDeCosto';
 import { IEmpresa } from '@/interfaces/IEmpresa';
 import { IFlujo } from '@/interfaces/IFlujo';
-
+import { Workbook } from "exceljs";
 
 
 interface comprobantesContablesProps {
 }
 
+interface ExcelColumn {
+  name: string;
+  type: string;
+}
+
+interface Linea {
+  cuenta: string;
+  centro: string;
+  item: string;
+  rut: string;
+  nroDoc: string;
+  tipoDoc: string;
+  feDoc: string;
+  feVen: string;
+  nroRef: string;
+  cp: string;
+  debe: string;
+  haber: string;
+  flujo: string;
+  glosa: string;
+}
 const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
 
   const { getHeaders } = useContext(RequestHeadersContext) as RequestHeadersContextType;
@@ -496,6 +518,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
             });
             
             setLineasData(response.data);
+            console.log(response.data)
           } else {
             console.error('empresa, periodo, or mes is missing in localStorage.');
           }
@@ -1243,6 +1266,189 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
     }
   };
 
+  const XLSX = require('xlsx');
+
+  const readExcelFile = (file:any) => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+
+        reader.onload = (e) => {
+            const data = e.target?.result;
+            const workbook = XLSX.read(data, { type: 'binary' });
+
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const lines = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false });
+            // Assuming your data starts from the second row (index 1)
+            
+            const columns = lines.slice(1).map((row:any) => ({
+                cuenta: row[0] || 0,
+                obra: row[1] || 0,
+                item: row[2] || 0,
+                auxiliar: row[3] || 0,
+                noDoc: row[4] || 0,
+                td: row[5] || 0,
+                feDoc: row[6] || "",
+                feVen: row[7] || "",
+                nroRef: row[8] || 0,
+                codigoCP: row[9] || 0,
+                debe: row[10] || 0,
+                haber: row[11] || 0,
+                flujo: row[12] || 0,
+                glosa: row[13] || "",
+                type:"new",
+                referencia:newCount
+            }));
+
+            resolve(columns);
+        };
+
+        reader.onerror = (error) => {
+            reject(error);
+        };
+
+        reader.readAsBinaryString(file);
+    });
+  };
+
+  function getExcelFile() {
+    return new Promise((resolve, reject) => {
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+  
+      input.addEventListener("change", (event) => {
+        const file = event.target.files[0];
+        if (file) {
+          resolve(file);
+        } else {
+          reject(new Error("No se seleccionó ningún archivo."));
+        }
+      });
+  
+      input.click();
+    });
+  }
+
+  const loadExcelData = () => {
+    getExcelFile()
+      .then((file) => {
+        return readExcelFile(file); // Devuelve la promesa para encadenar otro .then()
+      })
+      .then((columns) => {
+        console.log(columns);
+
+        const nuevasLineas = columns.map((column:ILineas) => ({
+          cuenta: column.cuenta || 0,
+          feDoc: column.feDoc || "",
+          noDoc: column.noDoc || 0,
+          obra: column.obra || 0,
+          debe: column.debe || 0,
+          haber: column.haber || 0,
+          feVen: column.feVen || "",
+          item: column.item || 0,
+          auxiliar: column.auxiliar || 0,
+          td: column.td || 0,
+          codigoCP: column.codigoCP || 0,
+          flujo: column.flujo || 0,
+          type: "new",
+          referencia: newCount,
+          glosa: column.glosa || "",
+        }));
+        
+        const {isValidData,errors} = validateLines(columns);
+
+
+        if (isValidData) {
+          setLineasData([...lineasData, ...nuevasLineas]);
+
+          setModalOpen(false);
+          setEditedData(null);
+        } else {
+
+          setToasts([...toasts, dangerToast(`${errors} .`)])
+
+        }
+  
+      })
+      .catch((error) => {
+        console.error(error.message);
+      });
+  };
+
+  const validateLines = (lines: any) => {
+    let isValidData = true;
+    let errors = [];
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+
+      if (line?.glosa===undefined || line.glosa==="") {
+        errors.push("Glosa en la linea : "+(i+1)+"\n");
+        isValidData = false;
+      }
+  
+      if (line?.cuenta===undefined || line.cuenta==="" || !cuentasData.some((cuenta) => cuenta.codigo === Number(line?.cuenta))) {
+        errors.push("Cuenta no valida "+ line.cuenta+"\n");
+        isValidData = false;
+        return { isValidData, errors };
+      }
+
+      const cuentaObject = cuentasData.find((cuenta) => cuenta.codigo === Number(line?.cuenta));
+
+      if (cuentaObject?.rut != "N") {
+        if ( !ruts.some((rut) => rut.codigo === Number(line?.auxiliar))) {
+          errors.push("Rut "+line.auxiliar+"\n");
+          isValidData = false;
+        }
+      }else{
+        if (line.auxiliar!=0) {
+          errors.push("Cuenta:"+ line.cuenta+" no debe tener Rut \n");
+          isValidData = false;
+        }
+      }
+
+      if (cuentaObject?.centro != "N") {
+        if ( !centros.some((centro) => centro.codigo === Number(line?.obra))) {
+          errors.push("Centro: "+line.obra +"\n");
+          isValidData = false;
+        }
+      }else{
+        if (line.obra!=0) {
+          errors.push("Cuenta:"+ line.cuenta+" no debe tener Centro \n");
+          isValidData = false;
+        }
+      }
+
+      if (cuentaObject?.item != "N") {
+        if ( !Items.some((item) => item.codigo === Number(line?.item))) {
+          errors.push("Item: "+line.item + "\n");
+          isValidData = false;
+        }
+      }else{
+        if (line.item!=0) {
+          errors.push("Cuenta:"+ line.cuenta+" no debe tener Item \n");
+          isValidData = false;
+        }
+      }
+
+      if ((line?.flujo != 0 || line?.flujo != null) && !flujosData.some((flujo) => flujo.codigo === Number(line?.flujo))) {
+        errors.push("Flujo :"+ line.flujo +"\n");
+        isValidData = false;
+      }    
+      if (line?.debe != 0 && line.haber != 0) {
+        errors.push("Debe o Haber uno tiene que ser 0, linea:"+ i+1 +"\n");
+        isValidData = false;
+      }
+      if (line?.debe === 0 && line.haber === 0) {
+        errors.push("Debe o Haber tienen que ser mayor que 0, linea:"+ i+1 +"\n");
+        isValidData = false;
+      }
+
+    }
+    return { isValidData, errors };
+  };
+  
+  
   return (
     <section className='w-full h-4/5'>
 
@@ -1314,7 +1520,13 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
                       className='w-4 h-4'
                     />   
                   </ContableButton>
-
+                  <ContableButton tooltipText='Subir lineas por excel' onClick={loadExcelData}  disabled={!editable} >
+                  <Image
+                      src={excelLinea}
+                      alt="tabla excel"
+                      className='w-4 h-4'
+                    />   
+                  </ContableButton>
                 </div>
                 
                 <div className='flex gap-3'>
