@@ -1513,8 +1513,10 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
             <div id="datos-contable" className='col-span-5 bg-white dark:bg-slate-800 p-3'>
                 <div className='flex mb-1 items-end gap-2'>
                   
-                  <Select label='Tipo de Comprobante' name="tipo" title='Tipo de Comprobante' onChange={(e:any) => setTipo(e.target.value)} options={tipoComprobantes} error={false} size='md'/>
-                  <Input className='w-full' size='md' type="text" label="Número" onChange={(e:any) => setFolio(e.target.value)} value={folio} name='folio' placeholder='' />
+                  <div className=' w-3/12 '>
+                    <Select label='Tipo de Comprobante' name="tipo" title='Tipo de Comprobante' onChange={(e:any) => setTipo(e.target.value)} options={tipoComprobantes} error={false} size='md'/>
+                  </div>
+                  <Input className='w-10/12 mb-1 ' size='md' type="text" label="Número" onChange={(e:any) => setFolio(e.target.value)} value={folio} name='folio' placeholder='' />
                   
 
                   <ContableButton tooltipText='Editar Folio' onClick={() => {
@@ -1574,38 +1576,22 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
                   <Image
                       src={impresora}
                       alt="Imprimir pdf"
-                      className='w-4 h-4'
+                      className='w-4 h-4 '
                     />   
                   </ContableButton>
                   <ContableButton tooltipText='Subir lineas por excel' onClick={loadExcelData}  disabled={!editable} >
                   <Image
                       src={excelLinea}
                       alt="tabla excel"
-                      className='w-4 h-4'
+                      className='w-4 h-4 '
                     />   
                   </ContableButton>
                   <ButtonTableExcel data={ModificarLineas()}  filename="comprobantes_contables" />
 
-                  <div className='flex gap-1 ml-20 bg-white dark:bg-slate-800'>
-
-                      <ContableButton  tooltipText='Ir al primer folio' onClick={handleStart} disabled={tipo==="" || editable}>
-                        <ChevronDoubleLeftIcon className='w-4 h-4'/>
-                      </ContableButton>
-
-                      <ContableButton tooltipText='Ir al folio anterior' onClick={handleLeft} disabled={tipo==="" || editable}>
-                        <ChevronLeftIcon className='w-4 h-4'/>
-                      </ContableButton>
-
-                      <ContableButton tooltipText='Ir al siguiente folio' onClick={handleRight} disabled={tipo==="" || editable}>
-                        <ChevronRightIcon className='w-4 h-4'/>
-                      </ContableButton>
-                      
-                      <ContableButton tooltipText='Ir al ultimo folio' onClick={handleFinal} disabled={tipo==="" || editable}>
-                        <ChevronDoubleRightIcon className='w-4 h-4'/>
-                      </ContableButton>
-
-                  </div>
+                  
                 </div>
+
+                
                 
                 <div className='flex gap-3'>
                     <div className='flex '>
@@ -1668,6 +1654,25 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
                 <Input className='w-full' size="md" type='text' label="Glosa" name="glosa" value={folioValues.glosa} onChange={(e)=> setFolioValues({...folioValues, glosa: e.target.value})} disabled={!editable}/>
                 </div>
             </div>
+            <div className='mt-9 ml-3 col-span-1 flex gap-1 bg-white dark:bg-slate-800'>
+
+                      <ContableButton  tooltipText='Ir al primer folio' onClick={handleStart} disabled={tipo==="" || editable}>
+                        <ChevronDoubleLeftIcon className='w-4 h-4'/>
+                      </ContableButton>
+
+                      <ContableButton tooltipText='Ir al folio anterior' onClick={handleLeft} disabled={tipo==="" || editable}>
+                        <ChevronLeftIcon className='w-4 h-4 '/>
+                      </ContableButton>
+
+                      <ContableButton tooltipText='Ir al siguiente folio' onClick={handleRight} disabled={tipo==="" || editable}>
+                        <ChevronRightIcon className='w-4 h-4 '/>
+                      </ContableButton>
+                      
+                      <ContableButton tooltipText='Ir al ultimo folio' onClick={handleFinal} disabled={tipo==="" || editable}>
+                        <ChevronDoubleRightIcon className='w-4 h-4 '/>
+                      </ContableButton>
+
+                  </div>
 
         </div>
         <div></div>
