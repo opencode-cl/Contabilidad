@@ -1,5 +1,44 @@
 import { defaultThemes } from "react-data-table-component";
 
+export const gridStyleBoldHeader = {
+	header: {
+		style: {
+			minHeight: '25px'
+		},
+	},
+	headRow: {
+		style: {
+			borderTopStyle: 'solid',
+			borderTopWidth: '1px',
+			borderTopColor: defaultThemes.default.divider.default,
+		},
+
+	},
+	headCells: {
+		style: {
+			'&:not(:last-of-type)': {
+				borderRightStyle: 'solid',
+				borderRightWidth: '1px',
+				borderRightColor: defaultThemes.default.divider.default,
+			},
+			fontSize: '10px',
+			fontWeight: 'bold',
+			backgroundColor: '#f2f2f2'
+
+		},
+	},
+	cells: {
+		style: {
+			'&:not(:last-of-type)': {
+				borderRightStyle: 'solid',
+				borderRightWidth: '1px',
+				borderRightColor: defaultThemes.default.divider.default,
+				fontSize: '10px'
+			},
+		},
+	},
+};
+
 export const gridStyle = {
 	header: {
 		style: {
@@ -75,3 +114,5 @@ export const gridStyleBold = {
 		},
 	},
 };
+
+export default gridStyleBoldHeader;

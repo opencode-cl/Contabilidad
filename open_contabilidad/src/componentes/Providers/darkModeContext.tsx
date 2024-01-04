@@ -20,30 +20,42 @@ interface themeProviderProps{
 createDarkTheme();
 
 export const ThemeProvider: React.FC<themeProviderProps> = ({ children }): JSX.Element => {
-    const [theme, setTheme] = useState<"light" | "dark">(
-      (localStorage.getItem("ui.theme") as "light" | "dark") || "dark"
-    );
+  const [theme, setTheme] = useState<"light" | "dark">(() => {
+    try {
+      // Si el tema almacenado en localStorage es "light", lo usa; de lo contrario, usa "light" como predeterminado.
+      return (localStorage.getItem("ui.theme") as "light" | "dark") || "light";
+    } catch {
+      return "light";
+    }
+  });
 
-    useEffect(() => {
+  useEffect(() => {
+      try {
         const val = localStorage.getItem("ui.theme");
         const root = window.document.documentElement;
         root.classList.remove("light");
         root.classList.remove("dark");
         root.classList.add(val!);
-    }, [theme])
-    
-  
-    const toggleTheme = (): void => {
+      } catch (error) {
+        console.error("Error accessing localStorage:", error);
+      }
+  }, [theme]);
+
+  const toggleTheme = (): void => {
+    try {
       const val = theme === "light" ? "dark" : "light";
       setTheme(val);
       localStorage.setItem("ui.theme", val);
-    };
-  
-    return (
-      <ThemeContext.Provider value={{ theme, toggleTheme }}>
-        {children}
-      </ThemeContext.Provider>
-    );
+    } catch (error) {
+      console.error("Error accessing localStorage:", error);
+    }
   };
+
+  return (
+    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+      {children}
+    </ThemeContext.Provider>
+  );
+};
   
   export default ThemeProvider;

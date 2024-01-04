@@ -3,7 +3,7 @@ import React, { useState, useEffect, useContext} from 'react';
 import Input from '../Input';
 import Select from '../Select';
 import DataTable from 'react-data-table-component';
-import { gridStyle } from '@/globals/tableStyles';
+import { gridStyle, gridStyleBoldHeader } from '@/globals/tableStyles';
 import ContableButton from './contableButton';
 import { FolderArrowDownIcon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon, ChevronLeftIcon, ChevronRightIcon, DocumentMinusIcon, MagnifyingGlassIcon, PencilSquareIcon, PlusIcon, XMarkIcon } from '@heroicons/react/24/solid';
 import axios from 'axios';
@@ -38,40 +38,17 @@ import { ICentroDeCosto } from '@/interfaces/ICentroDeCosto';
 import { IEmpresa } from '@/interfaces/IEmpresa';
 import { IFlujo } from '@/interfaces/IFlujo';
 import { Workbook } from "exceljs";
-
+import ButtonTableExcel from '../ButtonTableExcel';
 
 interface comprobantesContablesProps {
 }
 
-interface ExcelColumn {
-  name: string;
-  type: string;
-}
-
-interface Linea {
-  cuenta: string;
-  centro: string;
-  item: string;
-  rut: string;
-  nroDoc: string;
-  tipoDoc: string;
-  feDoc: string;
-  feVen: string;
-  nroRef: string;
-  cp: string;
-  debe: string;
-  haber: string;
-  flujo: string;
-  glosa: string;
-}
 const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
 
   const { getHeaders } = useContext(RequestHeadersContext) as RequestHeadersContextType;
   const { theme } = useContext(ThemeContext)
 
   const [isModalOpen, setModalOpen] = useState(false);
-
-  const [actualizar, setActualizar] = useState(0);
 
   const [tipo, setTipo] = useState("");
   const [folio, setFolio] = useState(0)
@@ -185,30 +162,30 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
       doc.text(`Fecha ${folioValues.fecha}`,150,15);
 
       doc.setFontSize(15);
-      doc.text(`Comprobante de ${Conprobante} Nº ${folio}`,60,34);
+      doc.text(`Comprobante de ${Conprobante} Nº ${folio}`,60,27);
 
       doc.setFontSize(9);
       if (tipo==="E") {
-        doc.rect(15, 51, 180, 8);
-        doc.text(`Nombre: ${folioValues.nombre} `,17,56);
-        doc.text(`Rut: ${folioValues.rut}-${folioValues.dv}`,155,56);
+        doc.rect(15, 37, 180, 8);
+        doc.text(`Nombre: ${folioValues.nombre} `,17,42);
+        doc.text(`Rut: ${folioValues.rut}-${folioValues.dv}`,155,42);
         
-        doc.rect(15, 59, 180, 8);
-        doc.text(`Cuenta: ${nombreHeader} `,17,64);
+        doc.rect(15, 45, 180, 8);
+        doc.text(`Cuenta: ${nombreHeader} `,17,50);
         if (folioValues.noDoc!=0) {
-          doc.text(`Nº Documento: ${folioValues.noDoc}`,115,64);
+          doc.text(`Nº Documento: ${folioValues.noDoc}`,115,50);
         }
-        doc.text(`Valor: ${Intl.NumberFormat("es-CL").format(folioValues.valor)}`,155,64);
-        doc.rect(15, 67, 180, 8);
-        doc.text(`Glosa: ${folioValues.glosa}`,17,72);
+        doc.text(`Valor: ${Intl.NumberFormat("es-CL").format(folioValues.valor)}`,155,50);
+        doc.rect(15, 53, 180, 8);
+        doc.text(`Glosa: ${folioValues.glosa}`,17,58);
 
       }else{
-        doc.rect(15, 51, 180, 8);
-        doc.text(`Nombre: ${folioValues.nombre} `,17,56);
-        doc.text(`Rut: ${folioValues.rut}-${folioValues.dv}`,130,56);
+        doc.rect(15, 37, 180, 8);
+        doc.text(`Nombre: ${folioValues.nombre} `,17,42);
+        doc.text(`Rut: ${folioValues.rut}-${folioValues.dv}`,130,42);
         
-        doc.rect(15, 59, 180, 8);
-        doc.text(`Glosa: ${folioValues.glosa}`,17,64);
+        doc.rect(15, 45, 180, 8);
+        doc.text(`Glosa: ${folioValues.glosa}`,17,50);
       }
       
     };
@@ -225,13 +202,16 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
       total_haber=total_haber+linea.haber;
       total_debe=total_debe+linea.debe;
       if (cuenta!=undefined) nombre = cuenta.nombre;
-      let obra,item,auxiliar,noDoc;
+      let obra,item,auxiliar,noDoc,debe,haber;
       if(linea.obra!=0){obra=linea.obra}
       if(linea.item!=0){item=linea.item}
       if(linea.noDoc!=0){noDoc=linea.noDoc}
-      if(linea.auxiliar!=0){auxiliar=linea.auxiliar}
+      if(linea.auxiliar!=0 && linea.auxiliar!=-1){auxiliar=linea.auxiliar}
+      if(linea.debe!=0){debe=Intl.NumberFormat("es-CL").format(linea.debe)}
+      if(linea.haber!=0){haber=Intl.NumberFormat("es-CL").format(linea.haber)}
 
-      return [linea.cuenta+" "+nombre,obra,item,auxiliar,noDoc,Intl.NumberFormat("es-CL").format(linea.debe),Intl.NumberFormat("es-CL").format(linea.haber),linea.glosa]
+
+      return [linea.cuenta+" "+nombre,obra,item,auxiliar,noDoc,debe,haber,linea.glosa]
 
     });
 
@@ -278,7 +258,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
 
     doc.setFontSize(10);
     
-    const maxRowsPerPage = 18; 
+    const maxRowsPerPage = 20; 
 
     const dividedData = [];
     for (let i = 0; i < lineasfolio.length; i += maxRowsPerPage) {
@@ -293,7 +273,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
       }
   
       // Ajusta la posición startY solo para la primera parte
-      const startY = 80;
+      const startY = 69;
       doc.autoTable({ ...optionsLineas, body: part, startY });
 
     });
@@ -321,14 +301,14 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
     
     doc.setFillColor(200, 200, 200);
     doc.rect(15, height_total, 180, 6, 'F'); // 'F' indica que se llene el rectángulo sin bordes
-    doc.setFont('helvetica', 'bold'); 
+    
     
     doc.text(`Totales Iguales `,18,height_total+4);
     doc.text(`${Intl.NumberFormat("es-CL").format(total_debe)} `,116,height_total+4);
-    doc.text(`=  ${Intl.NumberFormat("es-CL").format(total_haber)} `,135,height_total+4);
+    doc.text(`  ${Intl.NumberFormat("es-CL").format(total_haber)} `,135,height_total+4);
 
     
-    doc.setFont('helvetica', 'normal');
+    
     let height_firma=height_total+20;
 
     if (height_firma +20>= pageHeight) {
@@ -365,17 +345,19 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
 
   const formatDate = (dateString:any) => {
     const originalDate = new Date(dateString);
-    // Verificar si la conversión a Date fue exitosa
 
     if (isNaN(originalDate.getTime())) {
         console.error(`Error al convertir la fecha: ${dateString}`);
         return "";
     }
-    if (dateString === "2001-01-01" || dateString === "01/01/2001" || dateString === "01/01/0001") {
+
+    // Formatear la fecha como "yyyy-MM-dd"
+    const date = originalDate.toISOString().split('T')[0];
+
+    if (date === "2001-01-01" || date === "01/01/2001" || date === "01/01/0001") {
       return "";
     }
-    // Formatear la fecha como "yyyy-MM-dd"
-    const formattedDate = originalDate.toISOString().split('T')[0];
+    const formattedDate = date;
     
     return formattedDate;
   }
@@ -501,7 +483,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
     });
 
     
-  }, [tipo,actualizar] );
+  }, [tipo] );
 
   useEffect(()=>{
 
@@ -572,7 +554,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
 
     setEditable(false)
 
-  }, [folio,tipo,actualizar])
+  }, [folio,tipo])
 
   const getLastFolioNum = (): Promise<number> => {
     const { empresa, periodo, mes } = getLocalStorageParams();
@@ -646,6 +628,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
     {
       name: 'Nº Doc',
       selector: (row: any) => row.noDoc,
+      center: true,
       cell: (row: any) => {
         return (
           <div>
@@ -1232,7 +1215,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
 
         axios.post(API_CONTABILIDAD + "/Folios/completo", {folio: folioObject, lineas:folioLineas} , {headers: getHeaders()})
         .then((response) => {
-          setActualizar(actualizar+1);
+          setEditable(false);
           setToasts([...toasts, defaultSuccessToast]) 
         }).catch((error) => {
           setToasts([...toasts, dangerToast("Error en la operación.")])
@@ -1253,9 +1236,8 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
         console.log(folioObject)
         axios.post(API_CONTABILIDAD + "/Folios/completo", {folio: folioObject, lineas:folioLineas} , {headers: getHeaders()})
         .then((response) => {
-          setActualizar(actualizar+1);
+          setEditable(false);
           setToasts([...toasts, defaultSuccessToast]) 
-          
         }).catch((error) => {
           setToasts([...toasts, dangerToast("Error en la operación.")])
         });
@@ -1319,7 +1301,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
 
             const sheet = workbook.Sheets[workbook.SheetNames[0]];
             const lines = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false });
-            // Assuming your data starts from the second row (index 1)
+            //Empezamos desde el 1 para dejar espacio a los titulos
             const columns = lines.slice(1).map((row:any) => ({
                 cuenta: row[0] || 0,
                 obra: row[1] || 0,
@@ -1496,7 +1478,34 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
     return { isValidData, errors };
   };
   
-  
+  const ModificarLineas = () => {
+    const LineasModificadas= lineasData.map(linea => { 
+      return {
+        Empresa: linea.empresa,
+        Tipo: linea.tipo,
+        Numero: linea.numero,
+        Fecha: formatDate(linea.fecha),
+        Cuenta: linea.cuenta,
+        Centro: linea.obra,
+        Item: linea.item,
+        Auxiliar: linea.auxiliar,
+        TipoDoc: linea.td,
+        NºDoc: linea.noDoc,
+        FeDoc: formatDate(linea.feDoc),
+        FeVen: formatDate(linea.feVen),
+        Debe: linea.debe,
+        Haber: linea.haber,
+        Glosa: linea.glosa,
+        Flujo: linea.flujo,
+        FechaReg: formatDate(linea.fechaReg),
+        Referencia: linea.referencia,
+        CodigoCP: linea.codigoCP,
+        NroRef: linea.nroRef,
+      };
+    });
+
+    return LineasModificadas
+  }
   return (
     <section className='w-full h-4/5'>
 
@@ -1575,6 +1584,27 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
                       className='w-4 h-4'
                     />   
                   </ContableButton>
+                  <ButtonTableExcel data={ModificarLineas()}  filename="comprobantes_contables" />
+
+                  <div className='flex gap-1 ml-20 bg-white dark:bg-slate-800'>
+
+                      <ContableButton  tooltipText='Ir al primer folio' onClick={handleStart} disabled={tipo==="" || editable}>
+                        <ChevronDoubleLeftIcon className='w-4 h-4'/>
+                      </ContableButton>
+
+                      <ContableButton tooltipText='Ir al folio anterior' onClick={handleLeft} disabled={tipo==="" || editable}>
+                        <ChevronLeftIcon className='w-4 h-4'/>
+                      </ContableButton>
+
+                      <ContableButton tooltipText='Ir al siguiente folio' onClick={handleRight} disabled={tipo==="" || editable}>
+                        <ChevronRightIcon className='w-4 h-4'/>
+                      </ContableButton>
+                      
+                      <ContableButton tooltipText='Ir al ultimo folio' onClick={handleFinal} disabled={tipo==="" || editable}>
+                        <ChevronDoubleRightIcon className='w-4 h-4'/>
+                      </ContableButton>
+
+                  </div>
                 </div>
                 
                 <div className='flex gap-3'>
@@ -1639,28 +1669,6 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
                 </div>
             </div>
 
-            <div id="configuracion" className='bg-white dark:bg-slate-800 p-2'>
-              <div className='flex gap-1'>
-
-                  <ContableButton  tooltipText='Ir al primer folio' onClick={handleStart} disabled={tipo==="" || editable}>
-                    <ChevronDoubleLeftIcon className='w-4 h-4'/>
-                  </ContableButton>
-
-                  <ContableButton tooltipText='Ir al folio anterior' onClick={handleLeft} disabled={tipo==="" || editable}>
-                    <ChevronLeftIcon className='w-4 h-4'/>
-                  </ContableButton>
-
-                  <ContableButton tooltipText='Ir al siguiente folio' onClick={handleRight} disabled={tipo==="" || editable}>
-                    <ChevronRightIcon className='w-4 h-4'/>
-                  </ContableButton>
-                  
-                  <ContableButton tooltipText='Ir al ultimo folio' onClick={handleFinal} disabled={tipo==="" || editable}>
-                    <ChevronDoubleRightIcon className='w-4 h-4'/>
-                  </ContableButton>
-
-              </div>
-
-            </div>
         </div>
         <div></div>
         <div id="tabla-contable" className='bg-white dark:bg-slate-800 dark:text-white'>
@@ -1677,7 +1685,7 @@ const ComprobantesContables: React.FC<comprobantesContablesProps> = () => {
             <DataTable
               columns={TableComprobantesContablesColumns}
               data={lineasData}
-              customStyles={gridStyle}
+              customStyles={gridStyleBoldHeader}
               dense
               className='border dark:border-slate-900'
               theme={theme}
